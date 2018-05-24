@@ -23,6 +23,13 @@ class MyMainList(MainList):
             time.sleep(random.randint(0, 10) / 10)
         monitor.close()
 
+    def cmd__ask(self, *args):
+        def answer_callback(answer):
+            print(answer)
+
+        question = ' '.join(args)
+        self.parent.fxi.prompt.ask(question, answer_callback)
+
 
 class App(AppBase):
     def init(self):

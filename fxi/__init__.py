@@ -6,6 +6,7 @@ import tkinter
 from tkinter import ttk
 
 from .command_line import CommandLine
+from .prompt import Prompt
 from .apps.main import App as MainApp
 from .notebook import Notebook
 
@@ -21,7 +22,12 @@ class FXI:
         self.notebook = Notebook(self)
         self.notebook.pack(expand=1, fill='both')
 
-        self.command_line = CommandLine(self, self.main_window)
+        self.commands_frame = ttk.Frame()
+        self.commands_frame.pack(fill=tkinter.X)
+        self.command_line = CommandLine(self, self.commands_frame)
+        self.prompt = Prompt(self.command_line, self.commands_frame)
+        self.prompt.pack(side=tkinter.LEFT)
+        self.command_line.pack(side=tkinter.LEFT, expand=True, fill=tkinter.X)
 
         self.status_bar = ttk.Frame(self.main_window)
         self.status_bar.pack(side=tkinter.BOTTOM, fill=tkinter.X)

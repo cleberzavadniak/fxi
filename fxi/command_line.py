@@ -8,8 +8,9 @@ class CommandLine(Entry):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parent = parent
-        self.pack(fill=tkinter.X)
         self.bind("<Return>", self.enter_callback)
+
+        self.callback = None
 
         for key in "cdrw1234567890":
             self.bind(key, self.keys_callback)
@@ -20,6 +21,11 @@ class CommandLine(Entry):
     def enter_callback(self, event):
         cmd = self.get()
         self.clear()
+
+        if self.callback:
+            self.callback(cmd)
+            return
+
         self.handle_command(cmd)
 
     def keys_callback(self, event):
