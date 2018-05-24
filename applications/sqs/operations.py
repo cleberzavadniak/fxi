@@ -10,7 +10,28 @@ def move_sqs_message(message, to_queue):
 
 
 class SQSOperationsMixin:
-    def move_sqs_messages(self, from_queue, to_queue, messages_limit=50, cherrypick=False):
+    def view_messages(self, queue):
+        monitor = self.open_monitor('View messages')
+
+        while monitor.alive:
+            messages = queue.receive_messages(
+                MaxNumberOfMessages=10,
+                AttributeNames=['All'],
+                MessageAttributeNames=['All']
+            )
+            if not messages:
+                self.info(f'No more messages in {queue}')
+                return
+
+            for message in messages:
+                if not monitor.alive:
+                    return
+
+                monitor.write(f"{message.message_attributes}", indentation=1)
+                monitor.write(f"{message.body}", indentation=1)
+                monitor.hr()
+
+    def move_messages(self, from_queue, to_queue, messages_limit=50, cherrypick=False):
         messages_count = 0
 
         monitor = self.open_monitor('Dead queue messages recovery')
@@ -58,8 +79,8 @@ class SQSOperationsMixin:
 
                 if success:
                     monitor.write(f"Message {messages_count}:")
-                    monitor.write("{message.message_attributes}", indentation=1)
-                    monitor.write("{message.body}", indentation=1)
+                    monitor.write(f"{message.message_attributes}", indentation=1)
+                    monitor.write(f"{message.body}", indentation=1)
                 else:
                     monitor.write(f'Error when moving message {messages_count}')
 

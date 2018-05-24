@@ -11,7 +11,7 @@ from .operations import SQSOperationsMixin
 def arg_is_entry(method):
     def new_method(self, *args, **kwargs):
         entry_index = int(args[0])
-        entry = self.entries[entry_index]
+        entry = self.main_list.entries[entry_index]
         return method(self, entry)
     return new_method
 
@@ -23,42 +23,6 @@ class MyMainList(MainList):
             name = entry.data['name']
             new_data = self.parent.refresh_queue(name)
             entry.refresh(new_data)
-
-    @arg_is_entry
-    def cmd__p(self, entry):
-        monitor = self.parent.open_monitor('Data')
-        monitor.write(f'{entry.data}')
-        monitor.update()
-
-    @arg_is_entry
-    def cmd__pa(self, entry):
-        obj = entry.data['object']
-        monitor = self.parent.open_monitor('Attributes')
-        monitor.write(f'{obj.attributes}')
-
-    @arg_is_entry
-    def cmd__recover(self, entry):
-        entry.mark_as('O')
-        arn = entry.data['arn']
-        obj = entry.data['object']
-        for other_entry in self.entries:
-            if other_entry is entry:
-                continue
-
-            other_obj = other_entry.data['object']
-            if 'RedrivePolicy' in other_obj.attributes:
-                redrive_policy = json.loads(other_obj.attributes['RedrivePolicy'])
-                if redrive_policy.get('deadLetterTargetArn', None) == arn:
-                    break
-        else:
-            self.parent.info('Related queue was not found!')
-            entry.refresh()
-            return
-
-        other_entry.mark_as('D')
-        count = self.parent.move_sqs_messages(obj, other_obj)
-        self.parent.info(f'{count} messages moved successfuly!')
-        self.refresh()
 
 
 class App(SQSOperationsMixin, AppBase):
@@ -109,3 +73,53 @@ class App(SQSOperationsMixin, AppBase):
         self.load_queues_list()
         self.main_list.render(self.queues)
         self.info(None)
+
+    # COMMANDS:
+    @arg_is_entry
+    def cmd__p(self, entry):
+        monitor = self.open_monitor('Data')
+        monitor.write(f'{entry.data}')
+
+    @arg_is_entry
+    def cmd__pa(self, entry):
+        obj = entry.data['object']
+        monitor = self.open_monitor('Attributes')
+        monitor.write(f'{obj.attributes}')
+
+    @arg_is_entry
+    def cmd__vm(self, entry):
+        self.view_messages(entry.data['object'])
+
+    @arg_is_entry
+    def cmd__recover(self, entry):
+        entry.mark_as('O')
+        arn = entry.data['arn']
+        obj = entry.data['object']
+        for other_entry in self.main_list.entries:
+            if other_entry is entry:
+                continue
+
+            other_obj = other_entry.data['object']
+            if 'RedrivePolicy' in other_obj.attributes:
+                redrive_policy = json.loads(other_obj.attributes['RedrivePolicy'])
+                if redrive_policy.get('deadLetterTargetArn', None) == arn:
+                    break
+        else:
+            self.info('Related queue was not found!')
+            entry.refresh()
+            return
+
+        other_entry.mark_as('D')
+        count = self.move_messages(obj, other_obj)
+        self.info(f'{count} messages moved successfuly!')
+
+        entry.refresh()
+        other_entry.refresh()
+
+    @arg_is_entry
+    def cmd__purge(self, entry):
+        obj = entry.data['object']
+        name = entry.data['name']
+        obj.purge()
+        self.info(f'Queue {name} purged!')
+        entry.refresh()

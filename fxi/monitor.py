@@ -52,3 +52,6 @@ class Monitor(ttk.Frame):
             row=0,
             columnspan=5
         )
+
+    def hr(self):
+        self.write('-' * 50)

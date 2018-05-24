@@ -124,11 +124,3 @@ class MainList:
 
     def add_entry_command(self, function, name=None, description=None):
         self.commands[name] = EntryCommand(function, name, description)
-
-    def handle_command(self, command):
-        cmd, *args = re.split(r'\s+', command)
-        method_name = f'cmd__{cmd}'
-        method = getattr(self, method_name, None)
-        if method:
-            return method(*args)  # TODO: treat kwargs, too ("a=b")
-        print('MainList.handle_command:', command)

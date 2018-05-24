@@ -1,3 +1,5 @@
+import re
+
 import threading
 import tkinter
 from tkinter import ttk
@@ -47,8 +49,17 @@ class AppBase:
             self.main_list.refresh()
 
     def handle_command(self, command):
+        cmd, *args = re.split(r'\s+', command)
+        method_name = f'cmd__{cmd}'
+        method = getattr(self, method_name, None)
+        if method:
+            t = threading.Thread(target=method, args=args)
+            t.start()
+            return
+
         if self.main_list:
-            t = threading.Thread(target=self.main_list.handle_command, args=[command])
+            method = getattr(self.main_list, method_name, None)
+            t = threading.Thread(target=self.main_list.handle_command, args=args)
             t.start()
             return
         print('AppBase.handle_command:', command)
