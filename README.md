@@ -14,3 +14,15 @@ I don't think awscli is too much of a better option. I want to read some
 news and I want to see images.
 
 `fxi` is going to help me with all that.
+
+# Global Keybindings
+
+- ctrl+c : Clear command line inout.
+- ctrl+d : "End of file": quit the program.
+- ctrl+w : Closes currently open monitor.
+- ctrl+r : "Reload": generally updates application data.
+- ctrl+<1-9> : Change current tab.
+
+# Global Commands
+
+- :q : Quit the program.
