@@ -7,17 +7,18 @@ from tkinter import ttk
 
 from .command_line import CommandLine
 from .apps.main import App as MainApp
+from .notebook import Notebook
 
 
 class FXI:
     def __init__(self):
         self.main_window = self.get_main_window()
 
-        self.apps = {}
+        self.apps = []
         self.available_apps = {}
         self.current_app = None
 
-        self.notebook = ttk.Notebook(self.main_window)
+        self.notebook = Notebook(self)
         self.notebook.pack(expand=1, fill='both')
 
         self.command_line = CommandLine(self, self.main_window)
@@ -75,29 +76,27 @@ class FXI:
 
         main_app = MainApp(self)
         main_app.init()
-        self.apps['main'] = main_app
+        self.apps.append(main_app)
         self.current_app = main_app
 
     def open_app(self, name):
         app_class = self.available_apps[name]
         app = app_class(self)
-        self.apps[name] = app
         app.init()
-        self.current_app = app
-        app.render_app()
-        self.focus_on_app(app)
 
-    def focus_on_app(self, app):
-        tab_key = app.tab.winfo_pathname(app.tab.winfo_id())
-        self.notebook.select(tab_key)
+        self.apps.append(app)
+        self.current_app = app
+
+        app.render_app()
+        self.notebook.focus_on_app(app)
 
     def render_apps(self):
-        for key, app in self.apps.items():
+        for app in self.apps:
             app.render_app()
 
     def stop_apps(self):
         print('Stopping apps...')
-        for key, app in self.apps.items():
+        for app in self.apps:
             app.alive = False
 
     def start(self):

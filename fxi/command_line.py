@@ -44,8 +44,10 @@ class CommandLine(Entry):
                     app.close_monitor()
 
             elif key in '123456789':
-                # TODO: set "current_app" properly...
-                self.parent.notebook.select(int(key) - 1)
+                # Move all this code to a method in `fxi`.
+                app = self.parent.apps[int(key) - 1]
+                self.parent.notebook.focus_on_app(app)
+                self.parent.current_app = app
 
             else:
                 print('Not found:', key)

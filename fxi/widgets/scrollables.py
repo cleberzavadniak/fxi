@@ -33,6 +33,7 @@ class VerticalScrolledFrame(Frame):
         self.interior = interior = Frame(canvas)
         interior_id = canvas.create_window(0, 0, window=interior,
                                            anchor=NW)
+        self.interior_id = interior_id
 
         # track changes to the canvas and frame width and sync them,
         # also updating the scrollbar
@@ -45,13 +46,18 @@ class VerticalScrolledFrame(Frame):
                 canvas.config(width=interior.winfo_reqwidth())
         interior.bind('<Configure>', _configure_interior)
 
-        def _configure_canvas(event):
-            if interior.winfo_reqwidth() != canvas.winfo_width():
-                # update the inner frame's width to fill the canvas
-                canvas.itemconfigure(interior_id, width=canvas.winfo_width())
-        canvas.bind('<Configure>', _configure_canvas)
+        canvas.bind('<Configure>', self._configure_canvas)
 
         self.bind_scrolling_events()
+
+    def _configure_canvas(self, event):
+        if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
+            # update the inner frame's width to fill the canvas
+            self.canvas.itemconfigure(self.interior_id, width=self.canvas.winfo_width())
+
+    def page_down(self):
+        self._configure_canvas(None)
+        self.canvas.yview_scroll(1, "pages")
 
     def bind_scrolling_events(self):
         # Scrolling:

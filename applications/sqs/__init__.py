@@ -26,12 +26,15 @@ class MyMainList(MainList):
 
     @arg_is_entry
     def cmd__p(self, entry):
-        print(entry.data)
+        monitor = self.parent.open_monitor('Data')
+        monitor.write(f'{entry.data}')
+        monitor.update()
 
     @arg_is_entry
     def cmd__pa(self, entry):
         obj = entry.data['object']
-        print(obj.attributes)
+        monitor = self.parent.open_monitor('Attributes')
+        monitor.write(f'{obj.attributes}')
 
     @arg_is_entry
     def cmd__recover(self, entry):
