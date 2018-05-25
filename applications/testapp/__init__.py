@@ -5,35 +5,9 @@ from fxi.apps.base import AppBase
 from fxi.apps.main_list import MainList
 
 
-class MyMainList(MainList):
-    def cmd__sleep(self, *args):
-        t = int(args[0])
-        self.parent.info(f'Sleeping for {t} seconds')
-        time.sleep(t)
-        self.parent.info(f'Waked up!')
-
-    def cmd__monitor(self, *args):
-        monitor = self.parent.open_monitor()
-        for i in range(0, 250):
-            if not self.parent.alive or not monitor.alive:
-                return
-
-            indentation = random.randint(0, 3)
-            monitor.write(f'Line {i} (indentation={indentation})', indentation=indentation)
-            time.sleep(random.randint(0, 10) / 10)
-        monitor.close()
-
-    def cmd__ask(self, *args):
-        def answer_callback(answer):
-            print(answer)
-
-        question = ' '.join(args)
-        self.parent.fxi.prompt.ask(question, answer_callback)
-
-
 class App(AppBase):
     def init(self):
-        self.main_list = MyMainList(
+        self.main_list = MainList(
             self,
             (('phrase',), ('count', 'rand'), ('word',)),
             ('Phrase', '', 'Word')
@@ -58,3 +32,25 @@ class App(AppBase):
     def render(self):
         self.h1('Test App')
         self.main_list.render(self.data)
+
+    # Commands:
+    def cmd__sleep(self, *args):
+        t = int(args[0])
+        self.info(f'Sleeping for {t} seconds')
+        time.sleep(t)
+        self.info(f'Waked up!')
+
+    def cmd__monitor(self, *args):
+        monitor = self.open_monitor()
+        for i in range(0, 250):
+            if not self.alive or not monitor.alive:
+                return
+
+            indentation = random.randint(0, 3)
+            monitor.write(f'Line {i} (indentation={indentation})', indentation=indentation)
+            time.sleep(random.randint(0, 10) / 10)
+        monitor.close()
+
+    def cmd__ask(self, *args):
+        question = ' '.join(args)
+        self.info(self.fxi.prompt.ask(question))

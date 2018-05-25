@@ -1,4 +1,4 @@
-from functools import partial
+import time
 import tkinter
 from tkinter.ttk import Label
 
@@ -9,6 +9,8 @@ class Prompt(Label):
 
         self.content = tkinter.StringVar()
         self.reset()
+
+        self.answer = None
 
         super().__init__(
             parent,
@@ -21,11 +23,22 @@ class Prompt(Label):
     def reset(self):
         self.content.set('> ')
 
-    def ask(self, question, callback):
+    def ask(self, question, hidden=False):
         self.content.set(f'{question}: ')
-        self.command_line.callback = partial(self.answer_callback, callback)
+        self.command_line.callback = self.answer_callback
 
-    def answer_callback(self, callback, answer):
+        if hidden:
+            self.command_line.configure(show="-")
+
+        self.answer = None
+        while self.answer is None:
+            time.sleep(0.1)
+
+        self.command_line.configure(show='')
+
+        return self.answer
+
+    def answer_callback(self, answer):
         self.command_line.callback = None
+        self.answer = answer
         self.reset()
-        callback(answer)

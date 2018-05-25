@@ -3,11 +3,12 @@ from tkinter import ttk
 
 
 class Monitor(ttk.Frame):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
+        self.parent = parent
         self.lines = []
         self.alive = True
 
-        super().__init__(*args, **kwargs)
+        super().__init__(parent.tab.interior, *args, **kwargs)
         self.configure(relief=tkinter.SUNKEN)
 
     def write(self, message, indentation=0):
@@ -19,18 +20,16 @@ class Monitor(ttk.Frame):
             formatted_message = f'+{spacer}{message}'
         else:
             formatted_message = f'{message}'
+
+        width = self.master.winfo_width()
         label = ttk.Label(
             self,
             text=formatted_message,
             anchor=tkinter.W,
             justify=tkinter.LEFT,
-            wraplength=self.master.winfo_reqwidth()
+            wraplength=width
         )
-        label.grid(
-            column=1,
-            row=len(self.lines) + 1,
-            sticky=tkinter.W
-        )
+        label.pack(expand=True, fill=tkinter.X)
         self.lines.append(label)
         self.master.master.master.page_down()  # XXX
 
@@ -47,11 +46,7 @@ class Monitor(ttk.Frame):
             font=("Terminus", 14, "bold")
         )
 
-        label.grid(
-            column=0,
-            row=0,
-            columnspan=5
-        )
+        label.pack(expand=True, fill=tkinter.X)
 
     def hr(self):
         self.write('-' * 50)

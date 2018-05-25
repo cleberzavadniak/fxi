@@ -71,11 +71,11 @@ class FXI:
             try:
                 module = importlib.import_module(app_name)
             except ModuleNotFoundError:
-                print('ModuleNotFoundError:', app_name)
                 continue
             try:
                 the_app_class = getattr(module, 'App')
-            except AttributeError:
+            except AttributeError as ex:
+                print(f' {entry}: AttributeError: {ex}')
                 continue
             self.available_apps[app_name] = the_app_class
             print('Loaded app:', app_name)
@@ -103,7 +103,7 @@ class FXI:
     def stop_apps(self):
         print('Stopping apps...')
         for app in self.apps:
-            app.alive = False
+            app.quit()
 
     def start(self):
         self.load_apps()

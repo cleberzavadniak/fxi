@@ -1,5 +1,7 @@
+from os import environ
+from pathlib import PosixPath
 import re
-
+import shelve
 import threading
 import tkinter
 from tkinter import ttk
@@ -23,8 +25,21 @@ class AppBase:
         self.main_list = None
         self.current_monitor = None
 
+        self.load_config()
+
+    def load_config(self):
+        basedir = PosixPath(environ['HOME']) / '.config' / 'fxi' / 'apps'
+        basedir.mkdir(exist_ok=True, parents=True)
+        path = basedir / self.title
+        self.config = shelve.open(str(path))
+        self.unsaved_config = {}
+
     def init(self):
         pass
+
+    def quit(self):
+        self.alive = False
+        self.config.close()
 
     def new_thread(self, method, args=None, kwargs=None):
         args = args or ()
@@ -33,7 +48,7 @@ class AppBase:
         t.start()
         return t
 
-    def info(self, message):
+    def info(self, message=None):
         self.fxi.info(message)
 
     def render(self):
@@ -57,18 +72,13 @@ class AppBase:
             t.start()
             return
 
-        if self.main_list:
-            method = getattr(self.main_list, method_name, None)
-            t = threading.Thread(target=self.main_list.handle_command, args=args)
-            t.start()
-            return
         print('AppBase.handle_command:', command)
 
     def open_monitor(self, name=None):
         if self.current_monitor:
             self.current_monitor.close()
 
-        monitor = Monitor(self.tab.interior, relief=tkinter.RIDGE)
+        monitor = Monitor(self, relief=tkinter.RIDGE)
         if name:
             monitor.h1(name)
         monitor.pack(expand=True, fill='both')
@@ -89,3 +99,21 @@ class AppBase:
         )
 
         label.pack(expand=True, fill='x')
+
+    def get_config_or_ask(self, key, hidden=False, label=None, default=None):
+        if key in self.config:
+            return self.config[key]
+
+        label = label or key
+
+        if default is not None:
+            label = f'{label} [{default}]'
+
+        value = self.fxi.prompt.ask(label, hidden=hidden) or default
+        self.unsaved_config[key] = value
+        return value
+
+    def persist_unsaved_config(self):
+        for key, value in tuple(self.unsaved_config.items()):
+            self.config[key] = value
+            del self.unsaved_config[key]
