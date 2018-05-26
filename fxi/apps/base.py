@@ -10,6 +10,14 @@ from fxi.widgets.scrollables import VerticalScrolledFrame
 from fxi.monitor import Monitor
 
 
+cmd_names_map = {
+    '/': 'SLASH',
+    '.': 'DOT',
+    ':': 'COLON',
+    ';': 'SEMICOLON'
+}
+
+
 class AppBase:
     title = 'App'
 
@@ -39,6 +47,7 @@ class AppBase:
 
     def quit(self):
         self.alive = False
+        self.tab.destroy()
         self.config.close()
 
     def new_thread(self, method, args=None, kwargs=None):
@@ -65,7 +74,10 @@ class AppBase:
 
     def handle_command(self, command):
         cmd, *args = re.split(r'\s+', command)
-        method_name = f'cmd__{cmd}'
+
+        cmd_name = cmd_names_map.get(cmd, cmd)
+
+        method_name = f'cmd__{cmd_name}'
         method = getattr(self, method_name, None)
         if method:
             t = threading.Thread(target=method, args=args)

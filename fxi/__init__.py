@@ -15,8 +15,8 @@ class FXI:
     def __init__(self):
         self.main_window = self.get_main_window()
 
-        self.apps = []
-        self.available_apps = {}
+        self.available_apps = []
+        self.running_apps = {}
         self.current_app = None
 
         self.notebook = Notebook(self)
@@ -55,7 +55,7 @@ class FXI:
         style.theme_use('clam')
         return window
 
-    def load_apps(self):
+    def locate_apps(self):
         path = PosixPath(os.environ['HOME']) / 'fxi-apps'  # TODO: allow user to change it
         sys.path.append(str(path))
 
@@ -67,47 +67,52 @@ class FXI:
             if not initfile.exists():
                 continue
 
-            app_name = entry.name
-            try:
-                module = importlib.import_module(app_name)
-            except ModuleNotFoundError:
-                continue
-            try:
-                the_app_class = getattr(module, 'App')
-            except AttributeError as ex:
-                print(f' {entry}: AttributeError: {ex}')
-                continue
-            self.available_apps[app_name] = the_app_class
-            print('Loaded app:', app_name)
+            self.available_apps.append(entry.name)
 
         main_app = MainApp(self)
         main_app.init()
-        self.apps.append(main_app)
-        self.current_app = main_app
+        self.running_apps['main'] = main_app
+        main_app.render_app()
+        self.current_app = 'main'
+
+    def get_app_class(self, app_name):
+        try:
+            module = importlib.import_module(app_name)
+        except ModuleNotFoundError as ex:
+            print(f'ModuleNotFoundError: {ex}')
+            return
+        try:
+            the_app_class = getattr(module, 'App')
+        except AttributeError as ex:
+            print(f' {app_name}: AttributeError: {ex}')
+            return
+
+        return the_app_class
 
     def open_app(self, name):
-        app_class = self.available_apps[name]
+        app_class = self.get_app_class(name)
         app = app_class(self)
         app.init()
 
-        self.apps.append(app)
-        self.current_app = app
-
         app.render_app()
         self.notebook.focus_on_app(app)
+        self.current_app = name
+        self.running_apps[name] = app
 
-    def render_apps(self):
-        for app in self.apps:
-            app.render_app()
+    def unload_app(self, name):
+        app = self.running_apps[name]
+        app.quit()
+        del self.running_apps[name]
 
     def stop_apps(self):
         print('Stopping apps...')
-        for app in self.apps:
+        for app in self.running_apps.values():
             app.quit()
 
-    def start(self):
-        self.load_apps()
-        self.render_apps()
+    def start(self, command_line_arg=None):
+        self.locate_apps()
         self.command_line.focus_set()
+        if command_line_arg:
+            self.command_line.handle_command(command_line_arg)
         self.main_window.mainloop()
         self.stop_apps()

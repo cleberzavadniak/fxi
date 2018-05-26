@@ -1,4 +1,3 @@
-import re
 import tkinter
 from tkinter import ttk
 
@@ -24,6 +23,8 @@ class Entry:
         self.index_marker = label
         self.widgets.append(label)
 
+        total_width = self.parent.parent.tab.master.winfo_width()
+        width = total_width / len(self.parent.headers)
         for cell_index, cell in enumerate(self.parent.cells):
             for value_index, value in enumerate(self.data[key] for key in cell):
                 label = ttk.Label(
@@ -31,7 +32,9 @@ class Entry:
                     text=f'{value}',
                     anchor=tkinter.W,
                     justify=tkinter.LEFT,
-                    font=("Terminus", 12)
+                    relief=tkinter.SUNKEN,
+                    font=("Terminus", 12),
+                    wraplength=width
                 )
                 label.grid(
                     column=cell_index + 1,
@@ -76,8 +79,6 @@ class EntryCommand:
 class MainList:
     def __init__(self, parent, cells, headers=None):
         self.parent = parent
-        # frame = ttk.Frame(parent.tab, borderwidth=1, relief=tkinter.RIDGE)
-        # frame = self.parent.tab.interior
         frame = ttk.Frame(parent.tab.interior, borderwidth=1, relief=tkinter.RIDGE)
         self.frame = frame
         self.cells = cells
@@ -91,7 +92,11 @@ class MainList:
         label.grid(column=0, row=0)
 
         for index, header in enumerate(self.headers):
-            label = ttk.Label(self.frame, text=header, font=("Terminus", 14))
+            label = ttk.Label(
+                self.frame,
+                text=header,
+                font=("Terminus", 14),
+            )
             label.grid(
                 column=index + 1,
                 row=0,

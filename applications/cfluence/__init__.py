@@ -4,16 +4,6 @@ from pathlib import Path
 from confluence import Api
 
 from fxi.apps.base import AppBase
-from fxi.apps.main_list import MainList
-
-
-class MyMainList(MainList):
-    def refresh(self):
-        for entry in self.entries:
-            entry.mark_as('loading')
-            # name = entry.data['name']
-            # new_data = self.parent.refresh_queue(name)
-            # entry.refresh(new_data)
 
 
 class App(AppBase):
@@ -107,6 +97,23 @@ class App(AppBase):
                 monitor.write('{p[id]} : {p[title]}'.format(p=page))
             else:
                 monitor.write('{p[id]} : {p[title]} (permissions: {p[permissions]})'.format(p=page))
+
+    def cmd__cd(self, path=None):
+        if path is None:
+            self.cwd = '/'
+            return
+
+        if not (path in self.spaces or path in self.pages):
+            self.info('Unknown path')
+            return
+
+        self.cwd = path
+
+    def cmd__v(self, space_key, *page_title_parts):
+        page_title = ' '.join(page_title_parts)
+        page = self.api.getpage(page_title, space_key)
+        monitor = self.open_monitor(page['title'])
+        monitor.write(page['content'])
 
     def cmd__pdb(self):
         import pdb; pdb.set_trace()

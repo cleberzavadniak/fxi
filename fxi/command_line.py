@@ -4,6 +4,22 @@ import tkinter
 from tkinter.ttk import Entry
 
 
+def bind_key(keysym, ctrl):
+    def decorator(method):
+        def new_method(self, event):
+            if ctrl and not event.state == 4:
+                return
+            return method(self, event)
+
+        new_method.keysym = keysym
+        new_method.modifier_control = ctrl
+        return new_method
+    return decorator
+
+
+# TODO: too much stuff is being made here in name
+# of `self.parent`. Move it all to parent object
+# class itself.
 class CommandLine(Entry):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -12,8 +28,15 @@ class CommandLine(Entry):
 
         self.callback = None
 
-        for key in "cdrw1234567890":
-            self.bind(key, self.keys_callback)
+        for attr_name in dir(self):
+            attr = getattr(self, attr_name)
+            keysyms = getattr(attr, 'keysym', None)
+            if keysyms:
+                if not isinstance(keysyms, (tuple, list)):
+                    keysyms = [keysyms]
+
+                for keysym in keysyms:
+                    self.bind(keysym, attr)
 
     def clear(self):
         self.delete(0, tkinter.END)
@@ -28,51 +51,72 @@ class CommandLine(Entry):
 
         self.handle_command(cmd)
 
-    def keys_callback(self, event):
-        if event.state == 4:  # Control
-            key = event.keysym
-            if key == 'c':
-                self.clear()
-                return
+    @bind_key('c', True)
+    def ctrl_c(self, event):
+        self.clear()
 
-            elif key == 'd':
-                self.master.quit()
-                return
+    @bind_key('d', True)
+    def ctrl_d(self, event):
+        self.master.quit()
 
-            elif key == 'r':
-                if self.parent.current_app:
-                    self.parent.current_app.refresh()
-                    return
+    @bind_key('r', True)
+    def ctrl_r(self, event):
+        if self.parent.current_app:
+            app = self.parent.running_apps[self.parent.current_app]
+            app.refresh()
 
-            elif key == 'w':
-                if self.parent.current_app:
-                    app = self.parent.current_app
-                    app.close_monitor()
+    @bind_key('w', True)
+    def ctrl_w(self, event):
+        if self.parent.current_app:
+            app = self.parent.running_apps[self.parent.current_app]
+            app.close_monitor()
 
-            elif key in '123456789':
-                # Move all this code to a method in `fxi`.
-                app = self.parent.apps[int(key) - 1]
-                self.parent.notebook.focus_on_app(app)
-                self.parent.current_app = app
+    @bind_key(tuple('123456789'), True)
+    def ctrl_number(self, event):
+        # TODO: Move all this code to a method in `fxi`.
+        key = event.keysym
+        app = self.parent.apps[int(key) - 1]
+        self.parent.notebook.focus_on_app(app)
 
-            else:
-                print('Not found:', key)
+        for app_name, app_instance in self.parent.running_apps.items():
+            if app_instance is app:
+                self.parent.current_app = app_name
 
-    def handle_command(self, command):
-        if command[0] == ':':
-            cmd = command[1:]
+    def handle_command(self, line):
+        commands = re.split(r'; ?', line)
+        for command in commands:
+            self.do_handle_command(command)
 
-            if cmd == 'q':
+    def do_handle_command(self, command):
+        head, *args = re.split(r'\s+', command)
+        if head[0] == ':':
+            head = head[1:]
+
+            try:
+                app_name = args[0]
+            except IndexError:
+                app_name = self.parent.current_app
+
+            if head == 'q':
                 print('Quitting.')
                 self.master.quit()
                 return
 
-        cmd, *args = re.split(r'\s+', command)
+            elif head == 'r':
+                self.parent.unload_app(app_name)
+                self.parent.open_app(app_name)
+                return
 
-        if cmd in self.parent.available_apps:
-            t = threading.Thread(target=self.parent.open_app, args=[cmd])
+            elif head == 'c':
+                self.parent.unload_app(app_name)
+                return
+
+        if head in self.parent.available_apps:
+            t = threading.Thread(target=self.parent.open_app, args=[head])
             t.start()
             return
 
         if self.parent.current_app:
-            self.parent.current_app.handle_command(command)
+            app = self.parent.running_apps[self.parent.current_app]
+            app.handle_command(command)
+            return
