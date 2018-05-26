@@ -13,6 +13,7 @@ from .notebook import Notebook
 
 class FXI:
     def __init__(self):
+        self.alive = False
         self.main_window = self.get_main_window()
 
         self.available_apps = []
@@ -59,7 +60,7 @@ class FXI:
         path = PosixPath(os.environ['HOME']) / 'fxi-apps'  # TODO: allow user to change it
         sys.path.append(str(path))
 
-        for entry in path.glob('*'):
+        for entry in path.glob('fx*'):
             if not entry.is_dir():
                 continue
 
@@ -67,7 +68,8 @@ class FXI:
             if not initfile.exists():
                 continue
 
-            self.available_apps.append(entry.name)
+            app_name = entry.name[2:]
+            self.available_apps.append(app_name)
 
         main_app = MainApp(self)
         main_app.init()
@@ -76,8 +78,9 @@ class FXI:
         self.current_app = 'main'
 
     def get_app_class(self, app_name):
+        module_name = f'fx{app_name}'
         try:
-            module = importlib.import_module(app_name)
+            module = importlib.import_module(module_name)
         except ModuleNotFoundError as ex:
             print(f'ModuleNotFoundError: {ex}')
             return
@@ -111,9 +114,11 @@ class FXI:
             app.quit()
 
     def start(self, command_line_arg=None):
+        self.alive = True
         self.locate_apps()
         self.command_line.focus_set()
         if command_line_arg:
             self.command_line.handle_command(command_line_arg)
         self.main_window.mainloop()
+        self.alive = False
         self.stop_apps()

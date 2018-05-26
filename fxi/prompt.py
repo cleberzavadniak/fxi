@@ -31,7 +31,7 @@ class Prompt(Label):
             self.command_line.configure(show="-")
 
         self.answer = None
-        while self.answer is None:
+        while self.command_line.parent.alive and self.answer is None:
             time.sleep(0.1)
 
         self.command_line.configure(show='')

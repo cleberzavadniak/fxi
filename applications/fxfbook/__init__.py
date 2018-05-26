@@ -21,7 +21,9 @@ class App(AppBase):
                 self.posts = self.api.get('me/posts')
             except facepy.exceptions.OAuthError as ex:
                 self.info(f'OAuthError: {ex}')
-                del self.config['token']
+
+                if 'token' in self.config:
+                    del self.config['token']
                 continue
             self.persist_unsaved_config()
             break
