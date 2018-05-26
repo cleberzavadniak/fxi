@@ -1,10 +1,12 @@
 from os import environ
 from pathlib import PosixPath
+from queue import Queue, Empty
 import re
 import shelve
 import threading
 import tkinter
 from tkinter import ttk
+import time
 
 from fxi.widgets.scrollables import VerticalScrolledFrame
 from fxi.monitor import Monitor
@@ -34,6 +36,9 @@ class AppBase:
         self.current_monitor = None
 
         self.load_config()
+
+        self.tasks_queue = Queue()
+        self.threads_pool = []
 
     def load_config(self):
         basedir = PosixPath(environ['HOME']) / '.config' / 'fxi' / 'apps'
@@ -129,3 +134,30 @@ class AppBase:
         for key, value in tuple(self.unsaved_config.items()):
             self.config[key] = value
             del self.unsaved_config[key]
+
+    def enqueue(self, function, *args, **kwargs):
+        self.tasks_queue.put((function, args, kwargs))
+
+        if len(self.threads_pool) < 2:
+            self.add_thread_to_pool()
+
+    def tasks_thread(self):
+        while self.alive:
+            try:
+                task = self.tasks_queue.get(timeout=1)
+            except Empty:
+                time.sleep(0.5)
+                continue
+
+            function, args, kwargs = task
+            try:
+                function(*args, **kwargs)
+            except Exception as ex:
+                the_type = type(ex)
+                print(f'{the_type}: {ex}')
+                continue
+
+    def add_thread_to_pool(self):
+        t = threading.Thread(target=self.tasks_thread)
+        t.start()
+        return t
