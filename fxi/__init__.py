@@ -87,6 +87,7 @@ class FXI:
             print(f' {app_name}: AttributeError: {ex}')
             return
 
+        the_app_class._module_reference = module
         return the_app_class
 
     def open_app(self, name):

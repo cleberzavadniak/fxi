@@ -1,3 +1,4 @@
+import importlib
 import re
 import threading
 import tkinter
@@ -89,11 +90,19 @@ class CommandLine(Entry):
 
     def do_handle_command(self, command):
         head, *args = re.split(r'\s+', command)
+
+        parsed_args = []
+        for arg in args:
+            if arg == '!c':
+                parsed_args.append(self.master.clipboard_get())
+                continue
+            parsed_args.append(arg)
+
         if head[0] == ':':
             head = head[1:]
 
             try:
-                app_name = args[0]
+                app_name = parsed_args[0]
             except IndexError:
                 app_name = self.parent.current_app
 
@@ -103,6 +112,8 @@ class CommandLine(Entry):
                 return
 
             elif head == 'r':
+                app = self.parent.running_apps[app_name]
+                importlib.reload(app._module_reference)
                 self.parent.unload_app(app_name)
                 self.parent.open_app(app_name)
                 return
@@ -110,6 +121,9 @@ class CommandLine(Entry):
             elif head == 'c':
                 self.parent.unload_app(app_name)
                 return
+
+        if head == 'echo':
+            print(' '.join(parsed_args))
 
         if head in self.parent.available_apps:
             t = threading.Thread(target=self.parent.open_app, args=[head])
