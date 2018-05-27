@@ -120,6 +120,10 @@ class CommandLine(Entry):
 
             elif head == 'c':
                 self.parent.unload_app(app_name)
+                app = tuple(self.parent.running_apps.values())[-1]
+                app_name = tuple(self.parent.running_apps.keys())[-1]
+                self.parent.notebook.focus_on_app(app)
+                self.parent.current_app = app_name
                 return
 
         if head == 'echo':
