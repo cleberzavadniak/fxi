@@ -76,7 +76,7 @@ class CommandLine(Entry):
     def ctrl_number(self, event):
         # TODO: Move all this code to a method in `fxi`.
         key = event.keysym
-        app = self.parent.apps[int(key) - 1]
+        app = tuple(self.parent.running_apps.values())[int(key) - 1]
         self.parent.notebook.focus_on_app(app)
 
         for app_name, app_instance in self.parent.running_apps.items():

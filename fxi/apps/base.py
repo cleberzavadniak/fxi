@@ -89,7 +89,7 @@ class AppBase:
             t.start()
             return
 
-        print('AppBase.handle_command:', command)
+        self.info(f'Unknown command: {command}')
 
     def open_monitor(self, name=None):
         if self.current_monitor:
@@ -161,3 +161,6 @@ class AppBase:
         t = threading.Thread(target=self.tasks_thread)
         t.start()
         return t
+
+    def ask(self, *args, **kwargs):
+        return self.fxi.prompt.ask(*args, **kwargs)
