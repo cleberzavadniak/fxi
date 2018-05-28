@@ -32,7 +32,6 @@ class Entry:
                     text=f'{value}',
                     anchor=tkinter.W,
                     justify=tkinter.LEFT,
-                    relief=tkinter.SUNKEN,
                     font=("Terminus", 12),
                     wraplength=width
                 )

@@ -49,15 +49,12 @@ class MonitorFrame(ttk.Frame):
         return self.write_string(what, indentation)
 
     def write_image_from_url(self, url, *args, **kwargs):
-        self.parent.info(f'Downloading image from {url}')
         response = requests.get(url)
         if response.status_code != 200:
-            self.parent.info(f'Error: {response.status_code}')
             print(response.status_code)
             print(response.content)
             return
 
-        self.parent.info()
         image_data = response.content
         image_buffer = BytesIO(image_data)
         image = Image.open(image_buffer)
@@ -111,17 +108,26 @@ class MonitorFrame(ttk.Frame):
             justify=tkinter.CENTER,
             relief=tkinter.RIDGE
         )
-        label.pack(expand=True, fill=tkinter.X, padx=2, pady=2)
+        label.pack(expand=True, fill=tkinter.X, padx=1, pady=1)
 
-    def h1(self, title):
+    def header(self, title, font_size):
         label = ttk.Label(
             self,
             text=f'{title}',
             anchor=tkinter.W,
             justify=tkinter.LEFT,
-            font=("Terminus", 14, "bold")
+            font=("Terminus", font_size, "bold")
         )
         label.pack(expand=True, fill=tkinter.X)
+
+    def h1(self, title):
+        return self.header(title, 16)
+
+    def h2(self, title):
+        return self.header(title, 14)
+
+    def h3(self, title):
+        return self.header(title, 12)
 
     def close(self):
         self.alive = False
