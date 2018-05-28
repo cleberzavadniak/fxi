@@ -9,14 +9,19 @@ import requests
 
 class LazySlot(ttk.Label):
     def write(self, what):
+        width = self.master.winfo_width()
+
         if isinstance(what, PhotoImage):
-            self.configure(image=what)
+            self.configure(width=width, image=what)
             self.master.images.append(what)
             return
 
         self.configure(text=what)
 
     def write_image_from_url(self, url, *args, **kwargs):
+        if not self.master.alive:
+            return
+
         response = requests.get(url)
         if response.status_code != 200:
             print(response.status_code)
@@ -49,6 +54,9 @@ class MonitorFrame(ttk.Frame):
         return self.write_string(what, indentation)
 
     def write_image_from_url(self, url, *args, **kwargs):
+        if not self.alive:
+            return
+
         response = requests.get(url)
         if response.status_code != 200:
             print(response.status_code)
@@ -65,11 +73,13 @@ class MonitorFrame(ttk.Frame):
     def write_image(self, image, indentation=0):
         # TODO: indentation
 
+        width = self.master.winfo_width()
         label = ttk.Label(
             self,
             image=image,
             anchor=tkinter.W,
-            justify=tkinter.CENTER
+            justify=tkinter.CENTER,
+            width=width
         )
         label.pack(expand=True, fill=tkinter.X)
         self.lines.append(label)

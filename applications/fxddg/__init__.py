@@ -18,6 +18,7 @@ class App(AppBase):
         self.info('Searching...')
         term = ' '.join(words)
         q = duckduckpy.query(term)
+        self.info()
 
         monitor = self.open_monitor(f'Search: {term}')
 
@@ -40,6 +41,9 @@ class App(AppBase):
         abstract_url = getattr(q, 'abstract_url', None)
         if abstract_url:
             monitor.write(f'{abstract_url}')
+            monitor.clipboard_clear()
+            monitor.clipboard_append(f'{abstract_url}')
+            self.info(f'Copied to clipboard: {abstract_url}')
 
         if q.results:
             monitor.h2('Results')
@@ -66,10 +70,4 @@ class App(AppBase):
         monitor.hr()
         monitor.write(f'{q}')
 
-        self.info()
         return q
-
-    def cmd__pdb(self, *words):
-        results = self.cmd__s(*words)
-        import pdb
-        pdb.set_trace()
