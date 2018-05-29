@@ -29,7 +29,7 @@ news and I want to see images.
 
 - :q : Quit the program.
 - :c : Close current application.
-- :r \<app_name\> : Reload current application.
+- :r : Reload current application.
 - echo \<phrase\> : Print phrase into terminal.
 
 # Special expressions:
@@ -76,7 +76,7 @@ You'll need to have an Application token...
 
 Search for movies and series on IMDb.
 
-It displays title, rating, cover and cast.
+It displays cover, title, rating, cover and cast.
 
 ## SQS
 
