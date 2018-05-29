@@ -2,6 +2,8 @@
 
 A kind of a "X11" command line applications building framework
 
+![fxi](https://user-images.githubusercontent.com/8899756/40636004-4f8576f8-62d3-11e8-80fe-6a2304498a74.png)
+
 Partly inspired by VisiData, partly from my own hatred for most of modern
 in-browser applications, `fxi` has as its goal to facilitate to the
 maximum building applications that you can interact with using your
