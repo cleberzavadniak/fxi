@@ -9,11 +9,8 @@ import requests
 
 class LazySlot(ttk.Label):
     def write(self, what):
-        width = self.master.winfo_width()
-
         if isinstance(what, PhotoImage):
-            self.configure(width=width, image=what)
-            self.master.images.append(what)
+            self.write_image(what)
             return
 
         self.configure(text=what)
@@ -31,9 +28,29 @@ class LazySlot(ttk.Label):
         image_data = response.content
         image_buffer = BytesIO(image_data)
         image = Image.open(image_buffer)
+        self.write_image(image, *image.size)
+        return image
+
+    def write_image(self, image, width, height):
+        max_width = self.master.master.winfo_width() * 0.95
+
+        if width > max_width:
+            p = max_width / width
+            image.thumbnail((
+                int(width * p),
+                int(height * p)
+            ))
         photoimage = PhotoImage(image)
-        self.write(photoimage, *args, **kwargs)
-        return photoimage
+
+        label = ttk.Label(
+            self,
+            image=photoimage,
+            anchor=tkinter.N,
+            justify=tkinter.CENTER,
+        )
+        label.pack(expand=True, fill=tkinter.X)
+        self.master.lines.append(label)
+        self.master.images.append(photoimage)
 
 
 class MonitorFrame(ttk.Frame):
@@ -71,9 +88,8 @@ class MonitorFrame(ttk.Frame):
         return photoimage
 
     def write_image(self, image, indentation=0):
-        # TODO: indentation
-
         width = self.master.winfo_width()
+        print('monitor.width:', width)
         label = ttk.Label(
             self,
             image=image,
@@ -92,7 +108,7 @@ class MonitorFrame(ttk.Frame):
         else:
             formatted_message = f'{message}'
 
-        width = self.master.winfo_width()
+        width = self.master.master.winfo_width()
         label = ttk.Label(
             self,
             text=formatted_message,
@@ -112,32 +128,35 @@ class MonitorFrame(ttk.Frame):
         return slot
 
     def hr(self):
+        """
         label = ttk.Label(
             self,
             anchor=tkinter.W,
             justify=tkinter.CENTER,
             relief=tkinter.RIDGE
         )
-        label.pack(expand=True, fill=tkinter.X, padx=1, pady=1)
+        label.pack(expand=True, fill=tkinter.X, padx=1, pady=1)"""
+        separator = ttk.Separator(self)
+        separator.pack(fill=tkinter.X, expand=True)
 
-    def header(self, title, font_size):
+    def header(self, title, style):
         label = ttk.Label(
             self,
             text=f'{title}',
             anchor=tkinter.W,
             justify=tkinter.LEFT,
-            font=("Terminus", font_size, "bold")
+            style=f'{style}.TLabel'
         )
         label.pack(expand=True, fill=tkinter.X)
 
     def h1(self, title):
-        return self.header(title, 16)
+        return self.header(title, 'h1')
 
     def h2(self, title):
-        return self.header(title, 14)
+        return self.header(title, 'h2')
 
     def h3(self, title):
-        return self.header(title, 12)
+        return self.header(title, 'h3')
 
     def close(self):
         self.alive = False

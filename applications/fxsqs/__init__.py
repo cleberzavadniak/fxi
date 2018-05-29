@@ -39,8 +39,10 @@ class App(SQSOperationsMixin, AppBase):
         )
 
     def load_queues_list(self):
+        self.info('Loading queues list...')
         for queue in self.client.queues.all():
             self.add_queue(queue)
+        self.info()
 
     def refresh_queue(self, name):
         entry = self.queues[name]
@@ -68,11 +70,12 @@ class App(SQSOperationsMixin, AppBase):
     def refresh(self):
         self.main_list.refresh()
 
-    def render(self):
-        self.info('Loading queues list...')
+    def initial_render(self):
         self.load_queues_list()
         self.main_list.render(self.queues)
-        self.info(None)
+
+    def render(self):
+        self.enqueue(self.initial_render)
 
     # COMMANDS:
     @arg_is_entry

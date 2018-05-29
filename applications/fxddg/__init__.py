@@ -65,9 +65,8 @@ class App(AppBase):
                 else:
                     monitor.write(f'{topic}')
                 monitor.write(f'{topic}')
-                monitor.write('-' * 50)
+                monitor.hr()
 
-        monitor.hr()
         monitor.write(f'{q}')
 
         return q

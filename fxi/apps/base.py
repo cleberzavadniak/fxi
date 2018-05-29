@@ -63,6 +63,7 @@ class AppBase:
         return t
 
     def info(self, message=None):
+        print(f'{self.title}: {message}')
         self.fxi.info(message)
 
     def render(self):
@@ -112,7 +113,7 @@ class AppBase:
             text=f'{title}',
             anchor=tkinter.W,
             justify=tkinter.LEFT,
-            font=("Terminus", 16, "bold")
+            style='h1.TLabel'
         )
 
         label.pack(expand=True, fill='x')

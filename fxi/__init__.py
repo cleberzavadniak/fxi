@@ -30,10 +30,15 @@ class FXI:
         self.prompt.pack(side=tkinter.LEFT)
         self.command_line.pack(side=tkinter.LEFT, expand=True, fill=tkinter.X)
 
-        self.status_bar = ttk.Frame(self.main_window)
+        self.status_bar = ttk.Frame(self.main_window, style='status.TFrame')
         self.status_bar.pack(side=tkinter.BOTTOM, fill=tkinter.X)
 
-        self.status = ttk.Label(self.status_bar, relief=tkinter.SUNKEN, anchor=tkinter.W)
+        self.status = ttk.Label(
+            self.status_bar,
+            relief=tkinter.SUNKEN,
+            anchor=tkinter.W,
+            style='status.TLabel'
+        )
         self.status['text'] = "Welcome"
         self.status.pack(fill=tkinter.X)
 
@@ -52,8 +57,20 @@ class FXI:
         window.geometry('800x600')
         window.configure(background='white')
 
+        font_family = 'Georgia'
+        base_font_size = 14
         style = ttk.Style()
         style.theme_use('clam')
+        style.configure('.', background='white')
+        style.configure('.', foreground='black')
+        style.configure('.', font=(font_family, base_font_size))
+        style.configure('TNotebook', font=('Terminus', base_font_size), background='gray')
+        style.configure('cell.TLabel', font=('Terminus', base_font_size))
+        style.configure('header.TLabel', font=('Terminus', base_font_size, 'bold'))
+        style.configure('h3.TLabel', font=(font_family, base_font_size, 'bold'))
+        style.configure('h2.TLabel', font=(font_family, base_font_size + 2, 'bold'))
+        style.configure('h1.TLabel', font=(font_family, base_font_size + 4, 'bold'))
+        style.configure('status.TLabel', font=('Terminus', 12))
         return window
 
     def locate_apps(self):

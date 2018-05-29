@@ -32,7 +32,7 @@ class Entry:
                     text=f'{value}',
                     anchor=tkinter.W,
                     justify=tkinter.LEFT,
-                    font=("Terminus", 12),
+                    style='cell.TLabel',
                     wraplength=width
                 )
                 label.grid(
@@ -94,7 +94,7 @@ class MainList:
             label = ttk.Label(
                 self.frame,
                 text=header,
-                font=("Terminus", 14),
+                style='header.TLabel'
             )
             label.grid(
                 column=index + 1,
