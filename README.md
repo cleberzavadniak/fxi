@@ -98,3 +98,9 @@ You AWS credentials files (`~/.aws/*`) must be properly set.
 Translate phrases between idioms.
 
 Uses `mymemory` as backend.
+
+## Wikipedia
+
+- Name: **wpedia**
+- Status: good enough
+- Commands: set \<lang\>, s (search)
