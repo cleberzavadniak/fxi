@@ -89,7 +89,6 @@ class MonitorFrame(ttk.Frame):
 
     def write_image(self, image, indentation=0):
         width = self.master.winfo_width()
-        print('monitor.width:', width)
         label = ttk.Label(
             self,
             image=image,

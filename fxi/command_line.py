@@ -91,6 +91,9 @@ class CommandLine(Entry):
     def do_handle_command(self, command):
         head, *args = re.split(r'\s+', command)
 
+        if not head:
+            return
+
         parsed_args = []
         for arg in args:
             if arg == '!c':
