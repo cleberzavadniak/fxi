@@ -1,7 +1,6 @@
 from os import environ
 from pathlib import PosixPath
 from queue import Queue, Empty
-import re
 import shelve
 import threading
 import tkinter
@@ -78,10 +77,8 @@ class AppBase:
         if self.main_list:
             self.main_list.refresh()
 
-    def handle_command(self, command):
-        cmd, *args = re.split(r'\s+', command)
-
-        cmd_name = cmd_names_map.get(cmd, cmd)
+    def handle_command(self, head, args):
+        cmd_name = cmd_names_map.get(head, head)
 
         method_name = f'cmd__{cmd_name}'
         method = getattr(self, method_name, None)
@@ -90,7 +87,7 @@ class AppBase:
             t.start()
             return
 
-        self.info(f'Unknown command: {command}')
+        self.info(f'Unknown command: {cmd_name}')
 
     def open_monitor(self, name=None):
         if self.current_monitor:

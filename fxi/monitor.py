@@ -148,6 +148,7 @@ class MonitorFrame(ttk.Frame):
             style=f'{style}.TLabel'
         )
         label.pack(expand=True, fill=tkinter.X)
+        self.lines.append(label)
 
     def h1(self, title):
         return self.header(title, 'h1')
@@ -157,6 +158,11 @@ class MonitorFrame(ttk.Frame):
 
     def h3(self, title):
         return self.header(title, 'h3')
+
+    def clear(self):
+        for line in self.lines:
+            line.destroy()
+        self.lines = []
 
     def close(self):
         self.alive = False

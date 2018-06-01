@@ -136,5 +136,5 @@ class CommandLine(Entry):
 
         if self.parent.current_app:
             app = self.parent.running_apps[self.parent.current_app]
-            app.handle_command(command)
+            app.handle_command(head, parsed_args)
             return
