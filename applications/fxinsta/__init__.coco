@@ -1,0 +1,106 @@
+from urllib.parse import quote_plus as urlquote, urljoin
+
+from fxi.apps.base import AppBase
+
+import requests
+from bs4 import BeautifulSoup
+
+
+class App(AppBase):
+    title = 'Insta'
+
+    def init(self):
+        self.entries = {}
+        # https://www.pintaram.com/search?query=TERM
+        self.base_url = 'https://www.pintaram.com'
+
+    def cmd__s(self, *words):
+        term = words |> ' '.join |> urlquote
+
+        with self.info('Searching...'):
+            soup = self.get_soup(f'{self.base_url}/search?query={term}')
+        content_rows = soup.find_all('div', class_='content-row')
+
+        monitor = self.open_monitor(f'Search: {term}')
+        index = 0
+        self.entries = {}
+
+        def show_entry(anchor):
+            nonlocal monitor
+            nonlocal index
+
+            href = anchor.attrs.get('href', None)
+            if href is None:
+                return
+
+            url = urljoin(self.base_url, href)
+
+            img = anchor.find('img')
+            thumbnail_url = img.attrs['src']
+
+            result_name_div = anchor.find('div', class_='search-result-name')
+            div1, div2, *rest = result_name_div.find_all('div')
+
+            name = div1.text.encode('utf-8')
+            nick = div2.text
+
+            monitor.h2(f'{index:>3}: {name}')
+            slot = monitor.add_slot()
+            self.enqueue(slot.write_image_from_url, thumbnail_url)
+            monitor.write(nick.encode('utf-8'))
+            monitor.hr()
+            self.entries[index] = (name, url)
+            index += 1
+
+        for row in content_rows:
+            row.find_all('a') |> map$(show_entry) |> tuple
+
+    def cmd__v(self, index):
+        name, url = self.entries[int(index)]
+
+        with self.info(f'Downloading {name}...'):
+            soup = self.get_soup(url)
+
+        monitor = self.open_monitor(name)
+        self.current_url = url
+        self.current_name = name
+        self.last_image = None
+
+        soup.find_all('div', class_='grid-item') |> map$(self.show_photo) |> tuple
+
+    def cmd__n(self):
+        with self.info('Loading next page...'):
+            response = requests.post(self.current_url, data={'nextMaxId': self.last_image})
+            response.raise_for_status()
+
+        soup = response.content |> BeautifulSoup
+        monitor = self.open_monitor(self.current_name)
+        soup.find_all('div', class_='grid-item') |> map$(self.show_photo) |> tuple
+
+    def show_photo(self, item):
+        img = item.find('img')
+        if not img:
+            return
+
+        monitor = self.current_monitor
+
+        img_anchor = img.parent
+        img_anchor_href = img_anchor.attrs['href']
+        img_id = img_anchor_href.split('/')[-1]
+        self.last_image = img_id
+
+        slot = monitor.add_slot()
+        self.enqueue(slot.write_image_from_url, img.attrs['src'])
+
+        item.find('span', class_='created_time') |> .text |> monitor.write
+
+        ptext = item.find('p', class_='pintaram-text')
+        ptext?.text |> .encode('utf-8') |> monitor.write
+
+        monitor.hr()
+
+    @staticmethod
+    def get_soup(url, **kwargs):
+        response = requests.get(url, **kwargs)
+        response.raise_for_status()
+        return response.content |> BeautifulSoup
