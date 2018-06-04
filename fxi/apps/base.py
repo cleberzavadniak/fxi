@@ -19,6 +19,27 @@ cmd_names_map = {
 }
 
 
+class InfoContext:
+    def __init__(self, app, message):
+        self.app = app
+        self.message = message
+
+    def info(self, message):
+        print(f'{self.app.title}: {message}')
+        self.app.fxi.info(message)
+
+    def __enter__(self):
+        self.info(self.message)
+
+    def __exit__(self, ex_type, ex_value, traceback):
+        if ex_type:
+            msg = f'{ex_type}: {ex_value}'
+            self.info(msg)
+            print(traceback)
+            return
+        self.info(None)
+
+
 class AppBase:
     title = 'App'
 
@@ -62,8 +83,7 @@ class AppBase:
         return t
 
     def info(self, message=None):
-        print(f'{self.title}: {message}')
-        self.fxi.info(message)
+        return InfoContext(self, message)
 
     def render(self):
         pass
