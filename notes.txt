@@ -1,0 +1,5 @@
+Lassie:
+
+>>> l = lassie.Lassie()
+>>> l.parser = 'html.parser'
+>>> l.fetch(url)

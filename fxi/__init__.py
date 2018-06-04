@@ -74,19 +74,21 @@ class FXI:
         return window
 
     def locate_apps(self):
-        path = PosixPath(os.environ['HOME']) / 'fxi-apps'  # TODO: allow user to change it
-        sys.path.append(str(path))
+        path = os.environ.get('FXIPATH', 'applications')
 
-        for entry in path.glob('fx*'):
-            if not entry.is_dir():
-                continue
+        for entry in path.split(':'):
+            sys.path.append(entry)
 
-            initfile = entry / '__init__.py'
-            if not initfile.exists():
-                continue
+            for entry in PosixPath(entry).glob('fx*'):
+                if not entry.is_dir():
+                    continue
 
-            app_name = entry.name[2:]
-            self.available_apps.append(app_name)
+                initfile = entry / '__init__.py'
+                if not initfile.exists():
+                    continue
+
+                app_name = entry.name[2:]
+                self.available_apps.append(app_name)
 
         main_app = MainApp(self)
         main_app.init()

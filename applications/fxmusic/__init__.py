@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x6bd101f4
+# __coconut_hash__ = 0x498beb10
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -548,7 +548,7 @@ class App(AppBase):
         return response.content
 
     def ytsearch(self, term, max_entries=12):
-        term = term.replace(' ', '+')  # TODO: proper urlencode, here.
+        term = urlquote(term)
         url = f'https://www.youtube.com/results?search_query={term}'
         soup = (BeautifulSoup)(self.get(url, headers={'Referer': 'www.youtube.com'}))
 

@@ -28,7 +28,7 @@ class App(AppBase):
         return response.content
 
     def ytsearch(self, term, max_entries=12):
-        term = term.replace(' ', '+')  # TODO: proper urlencode, here.
+        term = urlquote(term)
         url = f'https://www.youtube.com/results?search_query={term}'
         soup = self.get(url, headers={'Referer': 'www.youtube.com'}) |> BeautifulSoup
 
