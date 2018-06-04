@@ -34,6 +34,7 @@ class App(AppBase):
         for message in self.client.listup(max_messages):
             self.add_message(message)
         self.info()
+        self.main_list.clear()
         self.main_list.render(self.messages)
         self.enqueue(self.reload_and_refresh)
 
@@ -59,3 +60,22 @@ class App(AppBase):
 
     def render(self):
         self.main_list.render(self.messages)
+
+    def cmd__r(self, index):
+        entry = self.main_list.entries[int(index)]
+        obj = entry.data['object']
+
+        monitor = self.open_monitor(entry['subject'])
+        for line in obj.body.split('\n'):
+            monitor.write(line)
+
+    def cmd__delete(self, index):
+        entry = self.main_list.entries[int(index)]
+        obj = entry.data['object']
+
+        self.info(f'Marking "{obj.title}" as Deleted...')
+        self.client._mailer.store(f'{obj.uid}', '+FLAGS', '\\Deleted')
+        self.info('Expunge...')
+        self.client._mailer.expunge()
+        self.info('Message deleted!')
+        self.enqueue(self.reload)

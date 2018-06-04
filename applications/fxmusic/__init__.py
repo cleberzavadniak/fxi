@@ -1,4 +1,5 @@
 import subprocess
+from urllib.parse import quote_plus as url_quote
 
 from fxi.apps.base import AppBase
 
@@ -18,6 +19,7 @@ class App(AppBase):
 
     def init(self):
         self.entries = {}
+        self.darklyrics_base_url = 'http://www.darklyrics.com'
 
     def ytsearch(self, term, max_entries=12):
         term = term.replace(' ', '+')  # TODO: proper urlencode, here.
@@ -109,3 +111,98 @@ class App(AppBase):
             monitor.h2(title)
             monitor.write(url)
             monitor.write_image_from_url(thumbnail_src)
+
+    def cmd__l(self, *words):
+        term = ' '.join(words)
+
+        try:
+            index = int(term)
+        except ValueError:
+            return self.find_lyrics(term)
+
+        return self.navigate(index)
+
+    def find_lyrics(self, title):
+        return self.find_lyrics_darklyrics(title)
+
+    def find_lyrics_darklyrics(self, title):
+        quoted_term = url_quote(title)
+        search_url = f'{self.darklyrics_base_url}/search?q={quoted_term}'
+
+        self.info(f'Searching for {title}...')
+        response = requests.get(search_url)
+        response.raise_for_status()
+        self.info()
+
+        soup = BeautifulSoup(response.content)
+
+        monitor = self.open_monitor(title)
+        self.entries = {}
+        for index, entry in enumerate(soup.find_all('div', class_='sen')):
+            anchor = entry.find('a')
+            if anchor is None:
+                continue
+
+            text = anchor.text
+            href = anchor.attrs.get('href', None)
+
+            if href is None:
+                continue
+
+            monitor.write(f'{index:>3}: {text}')
+            self.entries[index] = (text, self.darklyrics_base_url, href)
+
+    def navigate(self, index):
+        text, base_url, url = self.entries[index]
+        self.info(f'Loading "{text}"...')
+
+        if url.startswith('../'):
+            url = url.strip('../')
+
+        if base_url not in url:
+            url = f'{base_url}/{url}'
+
+        response = requests.get(url)
+        response.raise_for_status()
+        self.info()
+
+        soup = BeautifulSoup(response.content)
+        monitor = self.open_monitor(text)
+
+        if '/lyrics/' in url:
+            viewer = self.view_lyrics
+        else:
+            viewer = self.view_band
+
+        return viewer(text, url, monitor, soup)
+
+    def view_band(self, text, url, monitor, soup):
+        index = 0
+        self.entries = {}
+
+        for album in soup.find_all('div', class_='album'):
+            h2 = album.find('h2')
+            monitor.h2(h2.text)
+            for anchor in album.find_all('a'):
+                text = anchor.text
+                href = anchor.attrs.get('href', None)
+
+                if href is None:
+                    continue
+
+                monitor.write(f'{index:>4}: {text}')
+
+                self.entries[index] = (text, self.darklyrics_base_url, href)
+                index += 1
+            monitor.hr()
+
+    def view_lyrics(self, text, url, monitor, soup):
+        lyrics = soup.find('div', class_='lyrics')
+
+        for element in lyrics.children:
+            if element.name == 'h3':
+                anchor = element.find('a')
+                monitor.hr()
+                monitor.h2(anchor.text)
+            elif element.name is None:
+                monitor.write(element.strip('\n'))
