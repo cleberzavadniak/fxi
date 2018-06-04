@@ -1,0 +1,15 @@
+boto3==1.7.26
+bs4==0.0.1
+cached-property==1.4.2
+Confluence-py==1.0.1
+duckduckpy==0.2
+easyimap==0.6.3
+IMDbPY==6.5
+lxml==4.2.1
+newspaper3k==0.2.6
+nltk==3.3
+Pillow==5.1.0
+requests==2.18.4
+translate==3.5.0
+wikipedia==1.4.0
+youtube-dl==2018.6.2
