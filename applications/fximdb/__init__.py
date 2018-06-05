@@ -10,9 +10,8 @@ class App(AppBase):
         self.api = IMDb()
 
     def download_cover(self, slot, url):
-        self.info(f'Downloading cover from {url}')
-        slot.write_image_from_url(url)
-        self.info()
+        with self.info(f'Downloading cover from {url}'):
+            slot.write_image_from_url(url)
 
     def download_more_info_about_movie(self, frame_slot, movie_info):
         identifier = movie_info.getID()
@@ -33,9 +32,8 @@ class App(AppBase):
     def cmd__s(self, *args):
         term = ' '.join(args)
 
-        self.info('Searching...')
-        movies = self.api.search_movie(term)
-        self.info()
+        with self.info('Searching...'):
+            movies = self.api.search_movie(term)
 
         monitor = self.open_monitor(f'Search: {term}')
 
@@ -49,11 +47,7 @@ class App(AppBase):
             year = movie_info.get('year')
             monitor.write(f'{kind}: {title} ({year})')
 
-            identifier = movie_info.getID()
-            self.info(f'Loading: {title} ({identifier})...')
-
             frame_slot = monitor.add_frame_slot()
             self.enqueue(self.download_more_info_about_movie, frame_slot, movie_info)
 
             monitor.hr()
-        self.info()

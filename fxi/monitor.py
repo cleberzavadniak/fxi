@@ -6,6 +6,8 @@ from PIL.ImageTk import PhotoImage
 from PIL import Image
 import requests
 
+from fxi.utils import apply_surrogates
+
 
 class LazySlot(ttk.Label):
     def write(self, what):
@@ -13,7 +15,7 @@ class LazySlot(ttk.Label):
             self.write_image(what)
             return
 
-        self.configure(text=what)
+        self.configure(text=apply_surrogates(what))
 
     def write_image_from_url(self, url, *args, **kwargs):
         if not self.master.alive:
@@ -101,6 +103,10 @@ class MonitorFrame(ttk.Frame):
         self.images.append(image)
 
     def write_string(self, message, indentation=0):
+        message = apply_surrogates(message)
+        return self.do_write_string(message, indentation)
+
+    def do_write_string(self, message, indentation=0):
         if indentation:
             spacer = '-' * (indentation - 1)
             formatted_message = f'+{spacer}{message}'
@@ -127,21 +133,14 @@ class MonitorFrame(ttk.Frame):
         return slot
 
     def hr(self):
-        """
-        label = ttk.Label(
-            self,
-            anchor=tkinter.W,
-            justify=tkinter.CENTER,
-            relief=tkinter.RIDGE
-        )
-        label.pack(expand=True, fill=tkinter.X, padx=1, pady=1)"""
         separator = ttk.Separator(self)
         separator.pack(fill=tkinter.X, expand=True)
 
     def header(self, title, style):
+        text = apply_surrogates(title)
         label = ttk.Label(
             self,
-            text=f'{title}',
+            text=text,
             anchor=tkinter.W,
             justify=tkinter.LEFT,
             style=f'{style}.TLabel'
@@ -166,6 +165,8 @@ class MonitorFrame(ttk.Frame):
     def close(self):
         self.alive = False
         self.images = []
+        for line in self.lines:
+            line.destroy()
         self.destroy()
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x976168a4
+# __coconut_hash__ = 0xa97cdfaa
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -517,11 +517,11 @@ _coconut_MatchError, _coconut_count, _coconut_enumerate, _coconut_reversed, _coc
 
 # Compiled Coconut: -----------------------------------------------------------
 
+import json
 from os import environ
 from pathlib import PosixPath
 from queue import Queue
 from queue import Empty
-import shelve
 import threading
 import tkinter
 from tkinter import ttk
@@ -529,6 +529,7 @@ import time
 
 from fxi.widgets.scrollables import VerticalScrolledFrame
 from fxi.monitor import Monitor
+from fxi.utils import apply_surrogates
 
 
 cmd_names_map = {'/': 'SLASH', '.': 'DOT', ':': 'COLON', ';': 'SEMICOLON'}
@@ -538,13 +539,16 @@ class InfoContext:
     def __init__(self, app, message):
         self.app = app
         self.message = message
+        self.info(self.message)
 
     def info(self, message):
-        print(f'{self.app.title}: {message}')
+        if message:
+            print(f'{self.app.title}: {message}')
+            message = apply_surrogates(message)
         self.app.fxi.info(message)
 
     def __enter__(self):
-        self.info(self.message)
+        pass
 
     def __exit__(self, ex_type, ex_value, traceback):
         if ex_type:
@@ -573,11 +577,29 @@ class AppBase:
         self.threads_pool = []
 
     def load_config(self):
+        self.unsaved_config = {}
+
         basedir = PosixPath(environ['HOME']) / '.config' / 'fxi' / 'apps'
         basedir.mkdir(exist_ok=True, parents=True)
-        path = basedir / self.title
-        self.config = shelve.open(str(path))
-        self.unsaved_config = {}
+        filename = (_coconut_partial(_coconut.operator.add, {1: '.json'}, 2))((((self.title).lower()).replace(' ', '_')))
+        path = basedir / filename
+
+        self.config_path = path
+
+        if not path.exists():
+            with path.open('w') as file_object:
+                pass
+            self.config = {}
+            return
+
+        with path.open('r') as file_object:
+            content = file_object.read()
+
+            if not content:
+                self.config = {}
+                return
+
+            self.config = json.loads(content)
 
     def init(self):
         pass
@@ -585,7 +607,7 @@ class AppBase:
     def quit(self):
         self.alive = False
         self.tab.destroy()
-        self.config.close()
+        self.persist_config()
 
     def new_thread(self, method, args=None, kwargs=None):
         args = args or ()
@@ -653,10 +675,23 @@ class AppBase:
         self.unsaved_config[key] = value
         return value
 
+    def set_config(self, key, value):
+        self.config[key] = value
+        self.persist_config()
+
+    @_coconut_tco
+    def get_config(self, key, default=None):
+        return _coconut_tail_call(self.config.get, key, default)
+
     def persist_unsaved_config(self):
         for key, value in tuple(self.unsaved_config.items()):
             self.config[key] = value
             del self.unsaved_config[key]
+        self.persist_config()
+
+    def persist_config(self):
+        with self.config_path.open('w') as file_object:
+            json.dump(self.config, file_object)
 
     def enqueue(self, function, *args, **kwargs):
         self.tasks_queue.put((function, args, kwargs))

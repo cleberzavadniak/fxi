@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x7ff30cd1
+# __coconut_hash__ = 0xd1eb1388
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -534,12 +534,13 @@ class App(AppBase):
 # https://www.pintaram.com/search?query=TERM
         self.base_url = 'https://www.pintaram.com'
 
+        self.favorites = self.get_config('favorites', {})
+
     def cmd__s(self, *words):
         term = (urlquote)((' '.join)(words))
 
         with self.info('Searching...'):
             soup = self.get_soup(f'{self.base_url}/search?query={term}')
-        content_rows = soup.find_all('div', class_='content-row')
 
         monitor = self.open_monitor(f'Search: {term}')
         index = 0
@@ -561,22 +562,30 @@ class App(AppBase):
             result_name_div = anchor.find('div', class_='search-result-name')
             div1, div2, *rest = result_name_div.find_all('div')
 
-            name = div1.text.encode('utf-8')
+            name = div1.text
             nick = div2.text
 
             monitor.h2(f'{index:>3}: {name}')
             slot = monitor.add_slot()
             self.enqueue(slot.write_image_from_url, thumbnail_url)
-            monitor.write(nick.encode('utf-8'))
+            monitor.write(nick)
             monitor.hr()
             self.entries[index] = (name, url)
             index += 1
 
-        for row in content_rows:
+        content_rows = soup.find_all('div', class_='content-row')
+        for row in content_rows[0:50]:
             (tuple)(map(show_entry, row.find_all('a')))
 
     def cmd__v(self, index):
-        name, url = self.entries[int(index)]
+        if index == 'n':
+            index = self.current_index + 1
+        elif index == 'p':
+            index = self.current_index - 1
+        else:
+            index = int(index)
+
+        name, url = self.entries[index]
 
         with self.info(f'Downloading {name}...'):
             soup = self.get_soup(url)
@@ -584,6 +593,7 @@ class App(AppBase):
         monitor = self.open_monitor(name)
         self.current_url = url
         self.current_name = name
+        self.current_index = index
         self.last_image = None
 
         (tuple)(map(self.show_photo, soup.find_all('div', class_='grid-item')))
@@ -615,7 +625,7 @@ class App(AppBase):
         (monitor.write)((item.find('span', class_='created_time')).text)
 
         ptext = item.find('p', class_='pintaram-text')
-        (monitor.write)(((lambda x: None if x is None else x.text)(ptext)).encode('utf-8'))
+        (monitor.write)((lambda x: None if x is None else x.text)(ptext))
 
         monitor.hr()
 
@@ -625,3 +635,17 @@ class App(AppBase):
         response = requests.get(url, **kwargs)
         response.raise_for_status()
         return _coconut_tail_call((BeautifulSoup), response.content)
+
+    def cmd__f(self, *comment_parts):
+        comment = (' '.join)(comment_parts)
+
+        name, url = self.entries[self.current_index]
+        self.favorites[name] = (url, comment)
+        self.set_config('favorites', self.favorites)
+
+    def cmd__lsf(self):
+        monitor = self.open_monitor('Favorites')
+        self.entries = {}
+        for index, (name, (url, comment)) in enumerate(self.favorites.items()):
+            self.entries[index] = name, url
+            monitor.write(f'{index:>4}: {name} | {comment}')
