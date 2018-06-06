@@ -1,9 +1,44 @@
+from time import sleep
+import tkinter
 from urllib.parse import quote_plus as urlquote, urljoin
 
 from fxi.apps.base import AppBase
+from fxi.apps.slideshow import Slide, ImageSlideShow
 
 import requests
 from bs4 import BeautifulSoup
+
+
+class MySlideShow(ImageSlideShow):
+    def next(self, *args, **kwargs):
+        super().next(*args, **kwargs)
+
+        num_slides = len(self.slides)
+        self.app.info(f'Slide {self.index} of {num_slides}')
+
+        if num_slides > 3 and self.index > (num_slides - 3):
+            self.app.enqueue(self.app.load_next_page)
+
+    def create_slide(self, item):
+        img = item.find('img')
+        if not img:
+            return
+
+        img_anchor = img.parent
+        img_anchor_href = img_anchor.attrs['href']
+        img_id = img_anchor_href.split('/')[-1]
+        self.app.last_image = img_id
+
+        img_src = img.attrs['src']
+
+        date = item.find('span', class_='created_time') |> .text
+        ptext = item.find('p', class_='pintaram-text').text
+
+        slide = Slide(self.app, relief=tkinter.SUNKEN)
+        slide.text = ptext
+        slide.date = date
+        slide.set_image_from_url(img_src)
+        self.slides.append(slide)
 
 
 class App(AppBase):
@@ -11,7 +46,6 @@ class App(AppBase):
 
     def init(self):
         self.entries = {}
-        # https://www.pintaram.com/search?query=TERM
         self.base_url = 'https://www.pintaram.com'
 
         self.favorites = self.get_config('favorites', {})
@@ -78,14 +112,48 @@ class App(AppBase):
 
         soup.find_all('div', class_='grid-item') |> map$(self.show_photo) |> tuple
 
-    def cmd__n(self):
+    def cmd__ss(self, index):
+        if index == 'n':
+            index = self.current_index + 1
+        elif index == 'p':
+            index = self.current_index - 1
+        else:
+            index = int(index)
+
+        name, url = self.entries[index]
+
+        self.current_url = url
+        self.current_name = name
+        self.current_index = index
+        self.last_image = None
+
+        self.slideshow = MySlideShow(self, [])
+
+        with self.info(f'Downloading {name}...'):
+            soup = self.get_soup(url)
+
+        with self.info('Creating slides...'):
+            soup.find_all('div', class_='grid-item') |> map$(self.slideshow.create_slide) |> tuple
+
+        self.enqueue(self.do_render_slideshow)
+        self.slideshow.render()
+
+    def do_render_slideshow(self):
+        if len(self.slideshow.slides) == 0 or self.slideshow.slides[0].image_reference is None:
+            sleep(0.5)
+            self.enqueue(self.do_render_slideshow)
+            return
+
+        self.slideshow.refresh()
+
+    def load_next_page(self):
         with self.info('Loading next page...'):
             response = requests.post(self.current_url, data={'nextMaxId': self.last_image})
             response.raise_for_status()
 
         soup = response.content |> BeautifulSoup
-        monitor = self.open_monitor(self.current_name)
-        soup.find_all('div', class_='grid-item') |> map$(self.show_photo) |> tuple
+        with self.info('Creating slides...'):
+            soup.find_all('div', class_='grid-item') |> map$(self.slideshow.create_slide) |> tuple
 
     def show_photo(self, item):
         img = item.find('img')

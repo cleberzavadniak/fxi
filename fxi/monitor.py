@@ -63,6 +63,10 @@ class MonitorFrame(ttk.Frame):
         self.alive = True
         super().__init__(parent, *args, **kwargs)
 
+    @property
+    def width(self):
+        return self.master.master.winfo_width()
+
     def write(self, what, indentation=0):
         if not self.alive:
             return
@@ -90,13 +94,12 @@ class MonitorFrame(ttk.Frame):
         return photoimage
 
     def write_image(self, image, indentation=0):
-        width = self.master.winfo_width()
         label = ttk.Label(
             self,
             image=image,
             anchor=tkinter.W,
             justify=tkinter.CENTER,
-            width=width
+            width=self.width
         )
         label.pack(expand=True, fill=tkinter.X)
         self.lines.append(label)
@@ -113,18 +116,22 @@ class MonitorFrame(ttk.Frame):
         else:
             formatted_message = f'{message}'
 
-        width = self.master.master.winfo_width()
         label = ttk.Label(
             self,
             text=formatted_message,
             anchor=tkinter.W,
             justify=tkinter.LEFT,
-            wraplength=width
+            wraplength=self.width
         )
         label.pack(expand=True, fill=tkinter.X)
         self.lines.append(label)
-        # self.master.master.master.page_down()  # XXX
         return label
+
+    def top(self):
+        self.master.master.master.canvas.yview_scroll(-1000, "pages")
+
+    def page_down(self):
+        self.master.master.master.page_down()
 
     def add_slot(self, *args, **kwargs):
         slot = LazySlot(self, *args, **kwargs)
@@ -161,6 +168,7 @@ class MonitorFrame(ttk.Frame):
         for line in self.lines:
             line.destroy()
         self.lines = []
+        self.top()
 
     def close(self):
         self.alive = False

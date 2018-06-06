@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xd1eb1388
+# __coconut_hash__ = 0x43f15507
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -517,13 +517,49 @@ _coconut_MatchError, _coconut_count, _coconut_enumerate, _coconut_reversed, _coc
 
 # Compiled Coconut: -----------------------------------------------------------
 
+from time import sleep
+import tkinter
 from urllib.parse import quote_plus as urlquote
 from urllib.parse import urljoin
 
 from fxi.apps.base import AppBase
+from fxi.apps.slideshow import Slide
+from fxi.apps.slideshow import ImageSlideShow
 
 import requests
 from bs4 import BeautifulSoup
+
+
+class MySlideShow(ImageSlideShow):
+    def next(self, *args, **kwargs):
+        super().next(*args, **kwargs)
+
+        num_slides = len(self.slides)
+        self.app.info(f'Slide {self.index} of {num_slides}')
+
+        if num_slides > 3 and self.index > (num_slides - 3):
+            self.app.enqueue(self.app.load_next_page)
+
+    def create_slide(self, item):
+        img = item.find('img')
+        if not img:
+            return
+
+        img_anchor = img.parent
+        img_anchor_href = img_anchor.attrs['href']
+        img_id = img_anchor_href.split('/')[-1]
+        self.app.last_image = img_id
+
+        img_src = img.attrs['src']
+
+        date = (item.find('span', class_='created_time')).text
+        ptext = item.find('p', class_='pintaram-text').text
+
+        slide = Slide(self.app, relief=tkinter.SUNKEN)
+        slide.text = ptext
+        slide.date = date
+        slide.set_image_from_url(img_src)
+        self.slides.append(slide)
 
 
 class App(AppBase):
@@ -531,7 +567,6 @@ class App(AppBase):
 
     def init(self):
         self.entries = {}
-# https://www.pintaram.com/search?query=TERM
         self.base_url = 'https://www.pintaram.com'
 
         self.favorites = self.get_config('favorites', {})
@@ -539,7 +574,7 @@ class App(AppBase):
     def cmd__s(self, *words):
         term = (urlquote)((' '.join)(words))
 
-        with self.info('Searching...'):
+        with self.info(f'Searching for "{term}"...'):
             soup = self.get_soup(f'{self.base_url}/search?query={term}')
 
         monitor = self.open_monitor(f'Search: {term}')
@@ -598,14 +633,42 @@ class App(AppBase):
 
         (tuple)(map(self.show_photo, soup.find_all('div', class_='grid-item')))
 
-    def cmd__n(self):
+    def cmd__ss(self, index):
+        index = int(index)
+        name, url = self.entries[index]
+
+        self.current_url = url
+        self.current_name = name
+        self.current_index = index
+        self.last_image = None
+
+        self.slideshow = MySlideShow(self, [])
+
+        with self.info(f'Downloading {name}...'):
+            soup = self.get_soup(url)
+
+        with self.info('Creating slides...'):
+            (tuple)(map(self.slideshow.create_slide, soup.find_all('div', class_='grid-item')))
+
+        self.enqueue(self.do_render_slideshow)
+        self.slideshow.render()
+
+    def do_render_slideshow(self):
+        if len(self.slideshow.slides) == 0 or self.slideshow.slides[0].image_reference is None:
+            sleep(0.5)
+            self.enqueue(self.do_render_slideshow)
+            return
+
+        self.slideshow.refresh()
+
+    def load_next_page(self):
         with self.info('Loading next page...'):
             response = requests.post(self.current_url, data={'nextMaxId': self.last_image})
             response.raise_for_status()
 
         soup = (BeautifulSoup)(response.content)
-        monitor = self.open_monitor(self.current_name)
-        (tuple)(map(self.show_photo, soup.find_all('div', class_='grid-item')))
+        with self.info('Creating slides...'):
+            (tuple)(map(self.slideshow.create_slide, soup.find_all('div', class_='grid-item')))
 
     def show_photo(self, item):
         img = item.find('img')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xa97cdfaa
+# __coconut_hash__ = 0xddc28c5a
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -650,9 +650,12 @@ class AppBase:
         monitor = Monitor(self, relief=tkinter.RIDGE)
         monitor.h1(name) if name is None else name
 
-        monitor.pack(expand=True, fill='both')
         self.current_monitor = monitor
+        self.show_current_monitor()
         return monitor
+
+    def show_current_monitor(self):
+        (lambda x: None if x is None else x.pack(expand=True, fill='both'))(self.current_monitor)
 
     def close_monitor(self):
         (lambda x: None if x is None else x.close())(self.current_monitor)
@@ -723,3 +726,9 @@ class AppBase:
     @_coconut_tco
     def ask(self, *args, **kwargs):
         return _coconut_tail_call(self.fxi.prompt.ask, *args, **kwargs)
+
+    def top(self):
+        self.tab.master.master.canvas.yview_scroll(-1000, "pages")
+
+    def page_down(self):
+        self.tab.master.master.page_down()

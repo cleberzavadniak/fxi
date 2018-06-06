@@ -75,14 +75,15 @@ class SQSOperationsMixin:
                         new_message.body = json.dumps(body)
                         message = new_message
 
-                success = move_sqs_message(message, to_queue)
-
-                if success:
+                try:
+                    move_sqs_message(message, to_queue)
+                except Exception as ex:
+                    the_type = type(ex)
+                    monitor.write(f'{the_type} when moving message {messages_count}: {ex}')
+                else:
                     monitor.write(f"Message {messages_count}:")
                     monitor.write(f"{message.message_attributes}", indentation=1)
                     monitor.write(f"{message.body}", indentation=1)
-                else:
-                    monitor.write(f'Error when moving message {messages_count}')
 
                 messages_count += 1
                 if messages_count >= messages_limit:

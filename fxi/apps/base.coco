@@ -137,9 +137,12 @@ class AppBase:
         monitor = Monitor(self, relief=tkinter.RIDGE)
         name ?? monitor.h1(name)
 
-        monitor.pack(expand=True, fill='both')
         self.current_monitor = monitor
+        self.show_current_monitor()
         return monitor
+
+    def show_current_monitor(self):
+        self.current_monitor?.pack(expand=True, fill='both')
 
     def close_monitor(self):
         self.current_monitor?.close()
@@ -214,3 +217,9 @@ class AppBase:
 
     def ask(self, *args, **kwargs):
         return self.fxi.prompt.ask(*args, **kwargs)
+
+    def top(self):
+        self.tab.master.master.canvas.yview_scroll(-1000, "pages")
+
+    def page_down(self):
+        self.tab.master.master.page_down()
