@@ -45,7 +45,7 @@ class InfoContext:
 
 
 class AppBase:
-    title = 'App'
+    title = 'App Title'
 
     def __init__(self, fxi):
         self.fxi = fxi
@@ -59,35 +59,11 @@ class AppBase:
         self.main_list = None
         self.current_monitor = None
 
+        self.unsaved_config = {}
         self.load_config()
 
         self.tasks_queue = Queue()
         self.threads_pool = []
-
-    def load_config(self):
-        self.unsaved_config = {}
-
-        basedir = PosixPath(environ['HOME']) / '.config' / 'fxi' / 'apps'
-        basedir.mkdir(exist_ok=True, parents=True)
-        filename = (self.title |> .lower() |> .replace(' ', '_')) |> (+)$(?, '.json')
-        path = basedir / filename
-
-        self.config_path = path
-
-        if not path.exists():
-            with path.open('w') as file_object:
-                pass
-            self.config = {}
-            return
-
-        with path.open('r') as file_object:
-            content = file_object.read()
-
-            if not content:
-                self.config = {}
-                return
-
-            self.config = json.loads(content)
 
     def init(self):
         pass
@@ -171,7 +147,38 @@ class AppBase:
         self.unsaved_config[key] = value
         return value
 
+    def load_config(self):
+        basedir = PosixPath(environ['HOME']) / '.config' / 'fxi' / 'apps'
+        basedir.mkdir(exist_ok=True, parents=True)
+        filename = (self.title |> .lower() |> .replace(' ', '_')) |> (+)$(?, '.json')
+        path = basedir / filename
+
+        self.config_path = path
+
+        if not path.exists():
+            with path.open('w') as file_object:
+                pass
+            self.config = {}
+            return
+
+        with path.open('r') as file_object:
+            content = file_object.read()
+
+            if not content:
+                self.config = {}
+                return
+
+            self.config = json.loads(content)
+
+    def reload_config(self):
+        with self.config_path.open('r') as file_object:
+            content = file_object.read()
+            if not content:
+                return
+        self.config = json.loads(content)
+
     def set_config(self, key, value):
+        self.reload_config()
         self.config[key] = value
         self.persist_config()
 
@@ -192,7 +199,8 @@ class AppBase:
         self.tasks_queue.put((function, args, kwargs))
 
         if len(self.threads_pool) < 2:
-            self.add_thread_to_pool()
+            if self.tasks_queue.qsize() > 10:
+                self.add_thread_to_pool()
 
     def tasks_thread(self):
         while self.alive:
@@ -223,3 +231,23 @@ class AppBase:
 
     def page_down(self):
         self.tab.master.master.page_down()
+
+    def cmd__later(self, *parts):
+        cmd = parts |> ' '.join
+
+        if not cmd:
+            return self.ls_later_list()
+
+        key = 'app:later_list'
+        later_list = self.get_config(key, [])
+        later_list.append(cmd)
+        self.set_config(key, later_list)
+        self.info(f'Saved "{cmd}" for later.')
+
+    def ls_later_list(self):
+        key = 'app:later_list'
+        later_list = self.get_config(key, [])
+
+        monitor = self.open_monitor('Later List')
+        for index, item in enumerate(later_list):
+            monitor.write(f'{index:>4}: {item}')

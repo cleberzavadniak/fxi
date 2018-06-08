@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xddc28c5a
+# __coconut_hash__ = 0x5a60d211
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -560,7 +560,7 @@ class InfoContext:
 
 
 class AppBase:
-    title = 'App'
+    title = 'App Title'
 
     def __init__(self, fxi):
         self.fxi = fxi
@@ -571,35 +571,11 @@ class AppBase:
         self.main_list = None
         self.current_monitor = None
 
+        self.unsaved_config = {}
         self.load_config()
 
         self.tasks_queue = Queue()
         self.threads_pool = []
-
-    def load_config(self):
-        self.unsaved_config = {}
-
-        basedir = PosixPath(environ['HOME']) / '.config' / 'fxi' / 'apps'
-        basedir.mkdir(exist_ok=True, parents=True)
-        filename = (_coconut_partial(_coconut.operator.add, {1: '.json'}, 2))((((self.title).lower()).replace(' ', '_')))
-        path = basedir / filename
-
-        self.config_path = path
-
-        if not path.exists():
-            with path.open('w') as file_object:
-                pass
-            self.config = {}
-            return
-
-        with path.open('r') as file_object:
-            content = file_object.read()
-
-            if not content:
-                self.config = {}
-                return
-
-            self.config = json.loads(content)
 
     def init(self):
         pass
@@ -678,7 +654,38 @@ class AppBase:
         self.unsaved_config[key] = value
         return value
 
+    def load_config(self):
+        basedir = PosixPath(environ['HOME']) / '.config' / 'fxi' / 'apps'
+        basedir.mkdir(exist_ok=True, parents=True)
+        filename = (_coconut_partial(_coconut.operator.add, {1: '.json'}, 2))((((self.title).lower()).replace(' ', '_')))
+        path = basedir / filename
+
+        self.config_path = path
+
+        if not path.exists():
+            with path.open('w') as file_object:
+                pass
+            self.config = {}
+            return
+
+        with path.open('r') as file_object:
+            content = file_object.read()
+
+            if not content:
+                self.config = {}
+                return
+
+            self.config = json.loads(content)
+
+    def reload_config(self):
+        with self.config_path.open('r') as file_object:
+            content = file_object.read()
+            if not content:
+                return
+        self.config = json.loads(content)
+
     def set_config(self, key, value):
+        self.reload_config()
         self.config[key] = value
         self.persist_config()
 
@@ -700,7 +707,8 @@ class AppBase:
         self.tasks_queue.put((function, args, kwargs))
 
         if len(self.threads_pool) < 2:
-            self.add_thread_to_pool()
+            if self.tasks_queue.qsize() > 10:
+                self.add_thread_to_pool()
 
     def tasks_thread(self):
         while self.alive:
@@ -732,3 +740,24 @@ class AppBase:
 
     def page_down(self):
         self.tab.master.master.page_down()
+
+    @_coconut_tco
+    def cmd__later(self, *parts):
+        cmd = (' '.join)(parts)
+
+        if not cmd:
+            return _coconut_tail_call(self.ls_later_list)
+
+        key = 'app:later_list'
+        later_list = self.get_config(key, [])
+        later_list.append(cmd)
+        self.set_config(key, later_list)
+        self.info(f'Saved "{cmd}" for later.')
+
+    def ls_later_list(self):
+        key = 'app:later_list'
+        later_list = self.get_config(key, [])
+
+        monitor = self.open_monitor('Later List')
+        for index, item in enumerate(later_list):
+            monitor.write(f'{index:>4}: {item}')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x43f15507
+# __coconut_hash__ = 0x54118476
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -530,6 +530,19 @@ import requests
 from bs4 import BeautifulSoup
 
 
+class MySlide(Slide):
+    def refresh(self, *args, **kwargs):
+        super().refresh(*args, **kwargs)
+        if self.text:
+            for word in self.text.split(' '):
+                if word.startswith('@'):
+                    term = word[1:]
+                    self.clipboard_clear()
+                    self.clipboard_append(term)
+                    self.app.info(f'Copied {term} to clipboard.')
+                    break
+
+
 class MySlideShow(ImageSlideShow):
     def next(self, *args, **kwargs):
         super().next(*args, **kwargs)
@@ -537,7 +550,7 @@ class MySlideShow(ImageSlideShow):
         num_slides = len(self.slides)
         self.app.info(f'Slide {self.index} of {num_slides}')
 
-        if num_slides > 3 and self.index > (num_slides - 3):
+        if num_slides > 5 and self.index > (num_slides - 4):
             self.app.enqueue(self.app.load_next_page)
 
     def create_slide(self, item):
@@ -555,11 +568,12 @@ class MySlideShow(ImageSlideShow):
         date = (item.find('span', class_='created_time')).text
         ptext = item.find('p', class_='pintaram-text').text
 
-        slide = Slide(self.app, relief=tkinter.SUNKEN)
+        slide = MySlide(self.app, relief=tkinter.SUNKEN)
         slide.text = ptext
         slide.date = date
         slide.set_image_from_url(img_src)
         self.slides.append(slide)
+        slide.render(self.title)
 
 
 class App(AppBase):
@@ -568,6 +582,8 @@ class App(AppBase):
     def init(self):
         self.entries = {}
         self.base_url = 'https://www.pintaram.com'
+        self.slideshow = None
+        self.loading_next_page = False
 
         self.favorites = self.get_config('favorites', {})
 
@@ -612,7 +628,7 @@ class App(AppBase):
         for row in content_rows[0:50]:
             (tuple)(map(show_entry, row.find_all('a')))
 
-    def cmd__v(self, index):
+    def cmd__list(self, index):
         if index == 'n':
             index = self.current_index + 1
         elif index == 'p':
@@ -633,8 +649,18 @@ class App(AppBase):
 
         (tuple)(map(self.show_photo, soup.find_all('div', class_='grid-item')))
 
+    @_coconut_tco
     def cmd__ss(self, index):
-        index = int(index)
+        return _coconut_tail_call(self.cmd__v, index)
+
+    def cmd__v(self, index):
+        if index == 'n':
+            index = self.current_index + 1
+        elif index == 'p':
+            index = self.current_index - 1
+        else:
+            index = int(index)
+
         name, url = self.entries[index]
 
         self.current_url = url
@@ -642,7 +668,15 @@ class App(AppBase):
         self.current_index = index
         self.last_image = None
 
-        self.slideshow = MySlideShow(self, [])
+        (lambda x: None if x is None else x.close())(self.slideshow)
+
+        if url in self.favorites:
+            _, description = self.favorites[url]
+            title = f'{name} [FAV: {description}]'
+        else:
+            title = name
+
+        self.slideshow = MySlideShow(self, title, [])
 
         with self.info(f'Downloading {name}...'):
             soup = self.get_soup(url)
@@ -662,6 +696,10 @@ class App(AppBase):
         self.slideshow.refresh()
 
     def load_next_page(self):
+        if self.loading_next_page:
+            return
+
+        self.loading_next_page = True
         with self.info('Loading next page...'):
             response = requests.post(self.current_url, data={'nextMaxId': self.last_image})
             response.raise_for_status()
@@ -669,6 +707,7 @@ class App(AppBase):
         soup = (BeautifulSoup)(response.content)
         with self.info('Creating slides...'):
             (tuple)(map(self.slideshow.create_slide, soup.find_all('div', class_='grid-item')))
+        self.loading_next_page = False
 
     def show_photo(self, item):
         img = item.find('img')
@@ -703,12 +742,18 @@ class App(AppBase):
         comment = (' '.join)(comment_parts)
 
         name, url = self.entries[self.current_index]
-        self.favorites[name] = (url, comment)
+        self.favorites[url] = (name, comment)
         self.set_config('favorites', self.favorites)
+
+        if self.slideshow:
+            new_title = f'{self.slideshow.title} [FAV: {description}]'
+            self.slideshow.title = new_title
+            for slide in self.slideshow.slides:
+                slide.set_title(new_title)
 
     def cmd__lsf(self):
         monitor = self.open_monitor('Favorites')
         self.entries = {}
-        for index, (name, (url, comment)) in enumerate(self.favorites.items()):
+        for index, (url, (name, comment)) in enumerate(self.favorites.items()):
             self.entries[index] = name, url
             monitor.write(f'{index:>4}: {name} | {comment}')

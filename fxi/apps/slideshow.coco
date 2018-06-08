@@ -1,0 +1,180 @@
+from io import BytesIO
+import tkinter
+from tkinter import ttk
+
+from PIL.ImageTk import PhotoImage
+from PIL import Image
+import requests
+
+from fxi.utils import apply_surrogates
+
+
+class Slide(ttk.Frame):
+    def __init__(self, app, *args, **kwargs):
+        self.image_reference = None
+        self.title_label = None
+        self.text = None
+        self.text_label = None
+        self.date = None
+        self.app = app
+        self.rendered = False
+
+        super().__init__(app.tab.interior, *args, **kwargs)
+
+        self.image_slot = ttk.Label(
+            self,
+            anchor=tkinter.N,
+            justify=tkinter.CENTER,
+        )
+        self.image_slot.pack(expand=True, fill=tkinter.X)
+
+    @property
+    def width(self):
+        return self.master.master.winfo_width()
+
+    @property
+    def height(self):
+        return self.master.master.winfo_height()
+
+    def set_image_from_url(self, url):
+        self.app.enqueue(self.do_set_image_from_url, url)
+
+    def set_title(self, title):
+        title = apply_surrogates(title)
+        self.title = title
+
+        if self.rendered:
+            self.title_label.configure(text=title)
+
+    def do_set_image_from_url(self, url):
+        if not self.app.alive:
+            return
+
+        response = requests.get(url)
+        if response.status_code != 200:
+            print(response.status_code)
+            print(response.content)
+            return
+
+        image_data = response.content
+        image_buffer = BytesIO(image_data)
+        image = Image.open(image_buffer)
+        width, height = image.size
+
+        max_width = self.width * 0.95
+        max_height = self.height * 0.95
+
+        pw = max_width / width
+        ph = max_height / height
+        p = min(ph, pw)
+        if p < 1:
+            image.thumbnail((
+                int(width * p),
+                int(height * p)
+            ))
+
+        photoimage = PhotoImage(image)
+        self.image_reference = photoimage
+        self.image_slot.configure(image=photoimage)
+
+    def render(self, title):
+        if self.rendered:
+            return
+
+        text = apply_surrogates(title)
+        label = ttk.Label(
+            self,
+            text=text,
+            anchor=tkinter.W,
+            justify=tkinter.LEFT,
+            style=f'h1.TLabel'
+        )
+        label.pack(expand=True, fill=tkinter.X)
+        self.title_label = label
+
+        if self.text:
+            label = ttk.Label(
+                self,
+                text=apply_surrogates(self.text),
+                anchor=tkinter.W,
+                justify=tkinter.LEFT,
+                wraplength=self.width
+            )
+            label.pack(expand=True, fill=tkinter.BOTH)
+            self.text_label = label
+
+        if self.date:
+            label = ttk.Label(
+                self,
+                text=apply_surrogates(self.date),
+                anchor=tkinter.W,
+                justify=tkinter.LEFT,
+                wraplength=self.width
+            )
+            label.pack(expand=True, fill=tkinter.BOTH)
+
+        self.rendered = True
+
+    def refresh(self):
+        self.pack(expand=tkinter.TRUE, fill=tkinter.BOTH)
+
+    def destroy(self):
+        self.image_reference = None
+        super().destroy()
+
+
+class ImageSlideShow(ttk.Frame):
+    def __init__(self, app, title, slides, *args, **kwargs):
+        self.app = app
+        self.title = title
+        self.tab = app.tab
+        self.index = 0
+        self.slides = slides
+
+        self.binded_functions = []
+
+    def render(self):
+        self.app.close_monitor()
+        self.app.current_monitor = self
+
+        # TODO: create a method in fxi to do this:
+        self.app.fxi.command_line.bind("<Left>", self.previous) |> self.binded_functions.append
+        self.app.fxi.command_line.bind("<Right>", self.next) |> self.binded_functions.append
+
+        self.refresh()
+
+    @property
+    def current_slide(self):
+        try:
+            return self.slides[self.index]
+        except IndexError:
+            return None
+
+    def clear(self):
+        self.current_slide?.pack_forget()
+
+    def refresh(self):
+        self.current_slide.refresh()
+
+    def next(self, event=None):
+        if self.index + 1 >= len(self.slides):
+            return
+
+        self.clear()
+        self.index += 1
+        self.refresh()
+
+    def previous(self, event=None):
+        if self.index - 1 < 0:
+            return
+
+        self.clear()
+        self.index -= 1
+        self.refresh()
+
+    def close(self):
+        for fid in self.binded_functions:
+            self.tab.unbind_all(fid)
+
+        for slide in self.slides:
+            slide.destroy()

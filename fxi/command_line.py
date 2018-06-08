@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x761730d0
+# __coconut_hash__ = 0xe79f4ac7
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -545,9 +545,11 @@ class CommandLine(Entry):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parent = parent
-        self.bind("<Return>", self.enter_callback)
 
+        self.bind("<Return>", self.enter_callback)
         self.callback = None
+        self.last_commands = []
+        self.last_commands_index = -1
 
         for attr_name in dir(self):
             attr = getattr(self, attr_name)
@@ -562,15 +564,58 @@ class CommandLine(Entry):
     def clear(self):
         self.delete(0, tkinter.END)
 
+    def update_last_command(self, cmd):
+        self.last_commands_index = -1
+        try:
+            last_command = self.last_commands[-1]
+        except IndexError:
+            pass
+        else:
+            if last_command == cmd:
+                return
+
+        self.last_commands.append(cmd)
+
     def enter_callback(self, event):
         cmd = self.get()
         self.clear()
+        self.update_last_command(cmd)
 
         if self.callback:
             self.callback(cmd)
             return
 
         self.handle_commands(cmd)
+
+    @bind_key('<Up>', False)
+    def up_key(self, event):
+        if not self.last_commands:
+            return
+
+        try:
+            last_command = self.last_commands[self.last_commands_index]
+        except IndexError:
+            return
+
+        self.clear()
+        self.insert(0, last_command)
+        self.last_commands_index -= 1
+
+    @bind_key('<Down>', False)
+    def down_key(self, event):
+        if not self.last_commands:
+            return
+
+        index = self.last_commands_index + 1
+
+        try:
+            last_command = self.last_commands[index]
+        except IndexError:
+            return
+
+        self.clear()
+        self.insert(0, last_command)
+        self.last_commands_index = index
 
     @bind_key('c', True)
     def ctrl_c(self, event):
