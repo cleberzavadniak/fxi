@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x9c8655ad
+# __coconut_hash__ = 0x6101bc4f
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -630,10 +630,10 @@ class AppBase:
                 method = getattr(self, entry_name)
                 doc = method.__doc__
 
+                monitor.h2(name)
                 if doc:
-                    monitor.write(f'{name:<10}: {doc}')
-                else:
-                    monitor.write(name)
+                    monitor.write(doc)
+                monitor.hr()
 
     def open_monitor(self, name=None):
         self.close_monitor()
@@ -758,6 +758,7 @@ class AppBase:
 
     @_coconut_tco
     def cmd__later(self, *parts):
+        """Save commands for later (instead of opening new tabs)"""
         cmd = (' '.join)(parts)
 
         if not cmd:

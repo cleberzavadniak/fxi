@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x54118476
+# __coconut_hash__ = 0x425d7a5d
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -588,6 +588,11 @@ class App(AppBase):
         self.favorites = self.get_config('favorites', {})
 
     def cmd__s(self, *words):
+        """
+        Search
+
+        Usage: s <term>
+        """
         term = (urlquote)((' '.join)(words))
 
         with self.info(f'Searching for "{term}"...'):
@@ -629,6 +634,12 @@ class App(AppBase):
             (tuple)(map(show_entry, row.find_all('a')))
 
     def cmd__list(self, index):
+        """
+        Displays the entry as a list, one post on top
+        of another.
+
+        Usage: list <index>
+        """
         if index == 'n':
             index = self.current_index + 1
         elif index == 'p':
@@ -651,9 +662,15 @@ class App(AppBase):
 
     @_coconut_tco
     def cmd__ss(self, index):
+        """Slideshow. Same as 'v'"""
         return _coconut_tail_call(self.cmd__v, index)
 
     def cmd__v(self, index):
+        """
+        View posts as a slideshow.
+
+        Usage: v <index>
+        """
         if index == 'n':
             index = self.current_index + 1
         elif index == 'p':
@@ -694,6 +711,7 @@ class App(AppBase):
             return
 
         self.slideshow.refresh()
+        self.enqueue(self.load_next_page)
 
     def load_next_page(self):
         if self.loading_next_page:
@@ -739,6 +757,11 @@ class App(AppBase):
         return _coconut_tail_call((BeautifulSoup), response.content)
 
     def cmd__f(self, *comment_parts):
+        """
+        Save a feed/account as favorite.
+
+        Usage: f <tag1>[ <tag2>[ <tag3>[...]]]
+        """
         comment = (' '.join)(comment_parts)
 
         name, url = self.entries[self.current_index]
@@ -752,6 +775,12 @@ class App(AppBase):
                 slide.set_title(new_title)
 
     def cmd__lsf(self):
+        """
+        List favorites
+
+        Usage: lsf
+        """
+
         monitor = self.open_monitor('Favorites')
         self.entries = {}
         for index, (url, (name, comment)) in enumerate(self.favorites.items()):

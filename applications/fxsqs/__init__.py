@@ -13,6 +13,8 @@ def arg_is_entry(method):
         entry_index = int(args[0])
         entry = self.main_list.entries[entry_index]
         return method(self, entry)
+
+    new_method.__doc__ = method.__doc__
     return new_method
 
 

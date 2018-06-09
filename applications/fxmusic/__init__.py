@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x498beb10
+# __coconut_hash__ = 0x83b536ac
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -581,6 +581,11 @@ class App(AppBase):
             yield e
 
     def cmd__s(self, *words):
+        """
+        Search
+
+        Usage: s <term>
+        """
         term = ' '.join(words)
 
         with self.info(f'Searching for {term}...'):
@@ -603,6 +608,13 @@ class App(AppBase):
             index += 1
 
     def cmd__play(self, index):
+        """
+        Copy a mplayer command to clipboard so you can
+        play the song at your terminal.
+
+        Usage: play <index>
+        """
+
         entry = self.entries[int(index)]
         self.info('Extracting metadata')
         status, output = subprocess.getstatusoutput(f'youtube-dl -g "{entry.url}"')
@@ -635,6 +647,12 @@ class App(AppBase):
 
     @_coconut_tco
     def cmd__l(self, *words):
+        """
+        Find lyrics for <song-name>
+
+        Usage: l <song-name>
+        """
+
         term = ' '.join(words)
 
         try:

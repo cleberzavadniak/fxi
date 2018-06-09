@@ -189,6 +189,7 @@ class App(AppBase):
             return
 
         self.slideshow.refresh()
+        self.enqueue(self.load_next_page)
 
     def load_next_page(self):
         if self.loading_next_page:

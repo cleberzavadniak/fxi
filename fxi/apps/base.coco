@@ -117,10 +117,10 @@ class AppBase:
                 method = getattr(self, entry_name)
                 doc = method.__doc__
 
+                monitor.h2(name)
                 if doc:
-                    monitor.write(f'{name:<10}: {doc}')
-                else:
-                    monitor.write(name)
+                    monitor.write(doc)
+                monitor.hr()
 
     def open_monitor(self, name=None):
         self.close_monitor()
