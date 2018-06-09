@@ -119,7 +119,7 @@ class AppBase:
 
                 monitor.h2(name)
                 if doc:
-                    monitor.write(doc)
+                    monitor.write_fixed(doc)
                 monitor.hr()
 
     def open_monitor(self, name=None):

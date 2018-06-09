@@ -67,6 +67,9 @@ class MonitorFrame(ttk.Frame):
     def width(self):
         return self.master.master.winfo_width()
 
+    def write_fixed(self, what, indentation=0):
+        return self.write_string(what, indentation, font=('Terminus', 12))
+
     def write(self, what, indentation=0):
         if not self.alive:
             return
@@ -105,11 +108,11 @@ class MonitorFrame(ttk.Frame):
         self.lines.append(label)
         self.images.append(image)
 
-    def write_string(self, message, indentation=0):
+    def write_string(self, message, indentation=0, font=None):
         message = apply_surrogates(message)
-        return self.do_write_string(message, indentation)
+        return self.do_write_string(message, indentation, font)
 
-    def do_write_string(self, message, indentation=0):
+    def do_write_string(self, message, indentation=0, font=None):
         if indentation:
             spacer = '-' * (indentation - 1)
             formatted_message = f'+{spacer}{message}'
@@ -123,6 +126,8 @@ class MonitorFrame(ttk.Frame):
             justify=tkinter.LEFT,
             wraplength=self.width
         )
+        if font:
+            label.configure(font=font)
         label.pack(expand=True, fill=tkinter.X)
         self.lines.append(label)
         return label

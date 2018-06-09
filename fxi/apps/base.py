@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x6101bc4f
+# __coconut_hash__ = 0x971d90fd
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -632,7 +632,7 @@ class AppBase:
 
                 monitor.h2(name)
                 if doc:
-                    monitor.write(doc)
+                    monitor.write_fixed(doc)
                 monitor.hr()
 
     def open_monitor(self, name=None):
