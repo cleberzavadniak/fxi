@@ -15,6 +15,11 @@ class App(AppBase):
         slot.write_image_from_url(url)
 
     def cmd__s(self, *words):
+        """
+        Search for <term>
+
+        Usage: s <term>
+        """
         self.info('Searching...')
         term = ' '.join(words)
         q = duckduckpy.query(term)

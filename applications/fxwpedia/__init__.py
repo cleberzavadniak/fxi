@@ -31,6 +31,12 @@ class App(AppBase):
         monitor.hr()
 
     def cmd__s(self, *words):
+        """
+        Search for <term>
+
+        Usage: s <term>
+        """
+
         term = ' '.join(words)
 
         self.info('Searching...')
@@ -62,5 +68,14 @@ class App(AppBase):
         self.info()
 
     def cmd__lang(self, language):
+        """
+        Set language to <language>
+
+        Usage: lang <language>
+
+        You should always use two letters for language, like
+        "en", "es" or "pt".
+        """
+
         self.api.set_lang(language)
         self.info(f'Language set to {language}')

@@ -30,6 +30,12 @@ class App(AppBase):
         frame_slot.write(', '.join(cast), 1)
 
     def cmd__s(self, *args):
+        """
+        Search for <term>
+
+        Usage: s <term>
+        """
+
         term = ' '.join(args)
 
         with self.info('Searching...'):

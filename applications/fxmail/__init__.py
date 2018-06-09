@@ -20,6 +20,15 @@ class App(AppBase):
         self.info('Open a new mailbox using: open <host> <username>')
 
     def cmd__open(self, host, username):
+        """
+        Open an IMAP mailbox.
+
+        Usage: open <host> <username>
+
+        Examples:
+            open imap.example.org john.doe
+            open gmail john.dough
+        """
         if '.' not in host:
             host = f'imap.{host}.com'
 
@@ -62,6 +71,12 @@ class App(AppBase):
         self.main_list.render(self.messages)
 
     def cmd__r(self, index):
+        """
+        Read <index> message
+
+        Usage: r <index>
+        """
+
         entry = self.main_list.entries[int(index)]
         obj = entry.data['object']
 
@@ -70,6 +85,13 @@ class App(AppBase):
             monitor.write(line)
 
     def cmd__delete(self, index):
+        """
+        Delete <index> message
+        (Not working right now, I believe)
+
+        Usage: delete <index>
+        """
+
         entry = self.main_list.entries[int(index)]
         obj = entry.data['object']
 

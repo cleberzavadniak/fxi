@@ -107,6 +107,21 @@ class AppBase:
 
         self.info(f'Unknown command: {cmd_name}')
 
+    def cmd__help(self):
+        """Show help about available commands"""
+
+        monitor = self.open_monitor(f'{self.title}: Help')
+        for entry_name in dir(self):
+            if entry_name.startswith('cmd__'):
+                name = entry_name.replace('cmd__', '')
+                method = getattr(self, entry_name)
+                doc = method.__doc__
+
+                if doc:
+                    monitor.write(f'{name:<10}: {doc}')
+                else:
+                    monitor.write(name)
+
     def open_monitor(self, name=None):
         self.close_monitor()
 
@@ -233,6 +248,7 @@ class AppBase:
         self.tab.master.master.page_down()
 
     def cmd__later(self, *parts):
+        """Save commands for later (instead of opening new tabs)"""
         cmd = parts |> ' '.join
 
         if not cmd:

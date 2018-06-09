@@ -23,6 +23,14 @@ class App(AppBase):
         return self.translators[self.key]
 
     def cmd__set(self, from_lang, to_lang):
+        """
+        Set "from" and "to" language
+
+        Usage: set <from_lang> <to_lang>
+
+        <from_lang> and <to_lang> should always use two letters,
+        like "en", "es" or "pt".
+        """
         self.from_lang = from_lang
         self.to_lang = to_lang
 
@@ -40,6 +48,13 @@ class App(AppBase):
             return self.translator.translate(phrase)
 
     def cmd__t(self, *words):
+        """
+        Translate a <phrase> accodingly to <from_lang> and <to_lang>
+        previously set with "set" command
+
+        Usage: t <phrase>
+        """
+
         if not self.from_lang or not self.to_lang:
             self.info('Use the command "set <from> <to>", before.')
             return

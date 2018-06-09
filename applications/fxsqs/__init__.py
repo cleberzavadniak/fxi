@@ -80,21 +80,51 @@ class App(SQSOperationsMixin, AppBase):
     # COMMANDS:
     @arg_is_entry
     def cmd__p(self, entry):
+        """
+        Print <index> queue data as collected by
+        this application
+
+        Usage: p <index>
+        """
         monitor = self.open_monitor('Data')
         monitor.write(f'{entry.data}')
 
     @arg_is_entry
     def cmd__pa(self, entry):
+        """
+        Print <index> queue attributes as informed
+        by Amazon.
+
+        Usage: pa <index>
+        """
+
         obj = entry.data['object']
         monitor = self.open_monitor('Attributes')
         monitor.write(f'{obj.attributes}')
 
     @arg_is_entry
     def cmd__vm(self, entry):
+        """
+        View messages from <index> queue
+        BEWARE: it will, in fact, generate one more
+        "rejection" for each message, so use it wisely.
+
+        Usage: vm <index>
+
+        No messages limit implemented, yet.
+        """
         self.view_messages(entry.data['object'])
 
     @arg_is_entry
     def cmd__recover(self, entry):
+        """
+        Recover messages from a dead letter queue.
+        It will find the corresponding "alive" queue
+        automatically for you.
+
+        Usage: recover <index>
+        """
+
         entry.mark_as('O')
         arn = entry.data['arn']
         obj = entry.data['object']
@@ -121,6 +151,12 @@ class App(SQSOperationsMixin, AppBase):
 
     @arg_is_entry
     def cmd__purge(self, entry):
+        """
+        Purge <index> queue
+
+        Usage: purge <index>
+        """
+
         obj = entry.data['object']
         name = entry.data['name']
         obj.purge()

@@ -26,6 +26,12 @@ class App(AppBase):
                     child_element.string.replace_with(child_element.string.replace('\n', ''))
 
     def cmd__r(self, url):
+        """
+        Read a page pointed by <url>
+
+        Usage: r <url>
+        """
+
         self.info(f'Downloading {url}')
         a = newspaper.Article(url)
         a.download()
@@ -62,6 +68,12 @@ class App(AppBase):
             self.current_monitor.write(line)
 
     def cmd__p(self, page_number):
+        """
+        Go to page number <page-number>
+
+        Usage: p <page-number>
+        """
+
         page_number = int(page_number) or 1
         if page_number > self.current_page_counter:
             page_number = self.current_page_counter

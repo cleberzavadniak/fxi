@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x5a60d211
+# __coconut_hash__ = 0x9c8655ad
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -619,6 +619,21 @@ class AppBase:
             return
 
         self.info(f'Unknown command: {cmd_name}')
+
+    def cmd__help(self):
+        """Show help about available commands"""
+
+        monitor = self.open_monitor(f'{self.title}: Help')
+        for entry_name in dir(self):
+            if entry_name.startswith('cmd__'):
+                name = entry_name.replace('cmd__', '')
+                method = getattr(self, entry_name)
+                doc = method.__doc__
+
+                if doc:
+                    monitor.write(f'{name:<10}: {doc}')
+                else:
+                    monitor.write(name)
 
     def open_monitor(self, name=None):
         self.close_monitor()

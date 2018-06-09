@@ -64,6 +64,13 @@ class App(AppBase):
             tree[parent_id].append(page)
 
     def cmd__ls(self, path=None):
+        """
+        List pages under current or specified path.
+        Paths must be composed of pages IDs (numeric).
+
+        Usage: ls [path]
+        """
+
         if path:
             title = f'ls {path}'
         else:
@@ -99,6 +106,15 @@ class App(AppBase):
                 monitor.write('{p[id]} : {p[title]} (permissions: {p[permissions]})'.format(p=page))
 
     def cmd__cd(self, path=None):
+        """
+        Change current path to <path> or go
+        back to root.
+
+        Usage: cd [path]
+
+        "Path" may be absolute or relative.
+        """
+
         if path is None:
             self.cwd = '/'
             return
@@ -110,10 +126,16 @@ class App(AppBase):
         self.cwd = path
 
     def cmd__v(self, space_key, *page_title_parts):
+        """
+        View page.
+
+        Usage: v <space_key> <page title>
+
+        For now, you must write down the entire
+        page title. Case sensitive. This surely
+        will change in the future.
+        """
         page_title = ' '.join(page_title_parts)
         page = self.api.getpage(page_title, space_key)
         monitor = self.open_monitor(page['title'])
         monitor.write(page['content'])
-
-    def cmd__pdb(self):
-        import pdb; pdb.set_trace()

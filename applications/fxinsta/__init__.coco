@@ -67,6 +67,11 @@ class App(AppBase):
         self.favorites = self.get_config('favorites', {})
 
     def cmd__s(self, *words):
+        """
+        Search
+
+        Usage: s <term>
+        """
         term = words |> ' '.join |> urlquote
 
         with self.info(f'Searching for "{term}"...'):
@@ -108,6 +113,12 @@ class App(AppBase):
             row.find_all('a') |> map$(show_entry) |> tuple
 
     def cmd__list(self, index):
+        """
+        Displays the entry as a list, one post on top
+        of another.
+
+        Usage: list <index>
+        """
         if index == 'n':
             index = self.current_index + 1
         elif index == 'p':
@@ -129,9 +140,15 @@ class App(AppBase):
         soup.find_all('div', class_='grid-item') |> map$(self.show_photo) |> tuple
 
     def cmd__ss(self, index):
+        """Slideshow. Same as 'v'"""
         return self.cmd__v(index)
 
     def cmd__v(self, index):
+        """
+        View posts as a slideshow.
+
+        Usage: v <index>
+        """
         if index == 'n':
             index = self.current_index + 1
         elif index == 'p':
@@ -216,6 +233,11 @@ class App(AppBase):
         return response.content |> BeautifulSoup
 
     def cmd__f(self, *comment_parts):
+        """
+        Save a feed/account as favorite.
+
+        Usage: f <tag1>[ <tag2>[ <tag3>[...]]]
+        """
         comment = comment_parts |> ' '.join
 
         name, url = self.entries[self.current_index]
@@ -229,6 +251,12 @@ class App(AppBase):
                 slide.set_title(new_title)
 
     def cmd__lsf(self):
+        """
+        List favorites
+
+        Usage: lsf
+        """
+
         monitor = self.open_monitor('Favorites')
         self.entries = {}
         for index, (url, (name, comment)) in enumerate(self.favorites.items()):

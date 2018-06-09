@@ -35,12 +35,24 @@ class App(AppBase):
 
     # Commands:
     def cmd__sleep(self, *args):
+        """
+        Sleep for <n> seconds
+
+        Usage: sleep <n>
+        """
+
         t = int(args[0])
         self.info(f'Sleeping for {t} seconds')
         time.sleep(t)
         self.info(f'Waked up!')
 
     def cmd__monitor(self, *args):
+        """
+        Tests Monitor class, writing some garbage into it
+
+        Usage: monitor
+        """
+
         monitor = self.open_monitor()
         for i in range(0, 250):
             if not self.alive or not monitor.alive:
@@ -52,5 +64,11 @@ class App(AppBase):
         monitor.close()
 
     def cmd__ask(self, *args):
+        """
+        Tests the "ask" subsystem, displaying it with "info"
+
+        Usage: ask <question>
+        """
+
         question = ' '.join(args)
         self.info(self.fxi.prompt.ask(question))
