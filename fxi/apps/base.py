@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x971d90fd
+# __coconut_hash__ = 0xe996801a
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -721,9 +721,13 @@ class AppBase:
     def enqueue(self, function, *args, **kwargs):
         self.tasks_queue.put((function, args, kwargs))
 
-        if len(self.threads_pool) < 2:
-            if self.tasks_queue.qsize() > 10:
-                self.add_thread_to_pool()
+        num_threads = len(self.threads_pool)
+        qsize = self.tasks_queue.qsize()
+
+        if num_threads == 0 and qsize > 0:
+            self.add_thread_to_pool()
+        elif qsize > num_threads / 2:
+            self.add_thread_to_pool()
 
     def tasks_thread(self):
         while self.alive:
