@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x71359088
+# __coconut_hash__ = 0xbb9ebf1
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -532,6 +532,7 @@ class Slide(ttk.Frame):
     def __init__(self, app, *args, **kwargs):
         self.image_reference = None
         self.title_label = None
+        self.subtitle = None
         self.text = None
         self.text_label = None
         self.date = None
@@ -540,8 +541,13 @@ class Slide(ttk.Frame):
 
         super().__init__(app.tab.interior, *args, **kwargs)
 
+# TODO: move this Labels to another method!
         self.image_slot = ttk.Label(self, anchor=tkinter.N, justify=tkinter.CENTER)
         self.image_slot.pack(expand=True, fill=tkinter.X)
+
+        label = ttk.Label(self, text='Loading...', anchor=tkinter.W, justify=tkinter.LEFT, style=f'h1.TLabel')
+        label.pack(expand=True, fill=tkinter.X)
+        self.title_label = label
 
     @property
     @_coconut_tco
@@ -579,7 +585,7 @@ class Slide(ttk.Frame):
         width, height = image.size
 
         max_width = self.width * 0.95
-        max_height = self.height * 0.95
+        max_height = self.height * 0.80
 
         pw = max_width / width
         ph = max_height / height
@@ -596,9 +602,11 @@ class Slide(ttk.Frame):
             return
 
         text = apply_surrogates(title)
-        label = ttk.Label(self, text=text, anchor=tkinter.W, justify=tkinter.LEFT, style=f'h1.TLabel')
-        label.pack(expand=True, fill=tkinter.X)
-        self.title_label = label
+        self.title_label.configure(text=text)
+
+        if self.subtitle:
+            label = ttk.Label(self, text=apply_surrogates(self.subtitle), anchor=tkinter.W, justify=tkinter.LEFT, style=f'h2.TLabel')
+            label.pack(expand=True, fill=tkinter.X)
 
         if self.text:
             label = ttk.Label(self, text=apply_surrogates(self.text), anchor=tkinter.W, justify=tkinter.LEFT, wraplength=self.width)

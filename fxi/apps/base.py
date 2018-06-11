@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xe996801a
+# __coconut_hash__ = 0x5d6ab3b3
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -576,6 +576,7 @@ class AppBase:
 
         self.tasks_queue = Queue()
         self.threads_pool = []
+        self.adding_thread_to_pool = False
 
     def init(self):
         pass
@@ -634,6 +635,11 @@ class AppBase:
                 if doc:
                     monitor.write_fixed(doc)
                 monitor.hr()
+
+    def cmd__status(self):
+        monitor = self.open_monitor(f'{self.title}: Status')
+
+        monitor.write(f'Threads pool size: {self.threads_counter}')
 
     def open_monitor(self, name=None):
         self.close_monitor()
@@ -730,13 +736,19 @@ class AppBase:
             self.add_thread_to_pool()
 
     def tasks_thread(self):
-        while self.alive:
+        sleep_time = 0.5
+        max_inactivity_time = 60
+        inactivity_time_counter = 0
+
+        while self.alive and inactivity_time_counter < max_inactivity_time:
             try:
                 task = self.tasks_queue.get(timeout=1)
             except Empty:
-                time.sleep(0.5)
+                time.sleep(sleep_time)
+                inactivity_time_counter += sleep_time
                 continue
 
+            inactivity_time_counter = 0
             function, args, kwargs = task
             try:
                 function(*args, **kwargs)
@@ -745,10 +757,25 @@ class AppBase:
                 print(f'{the_type}: {ex}')
                 continue
 
+    @property
+    @_coconut_tco
+    def threads_counter(self):
+        for thread in tuple(self.threads_pool):
+            if not thread.is_alive():
+                self.threads_pool.remove(thread)
+
+        return _coconut_tail_call(len, self.threads_pool)
+
     def add_thread_to_pool(self):
+        if self.adding_thread_to_pool:
+            return
+        self.adding_thread_to_pool = True
+
         t = threading.Thread(target=self.tasks_thread)
         t.start()
-        return t
+        self.threads_pool.append(t)
+        time.sleep(0.5)  # We don't want TOO MUCH threads being created so fast.
+        self.adding_thread_to_pool = False
 
     @_coconut_tco
     def ask(self, *args, **kwargs):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x425d7a5d
+# __coconut_hash__ = 0x534618b
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -568,9 +568,13 @@ class MySlideShow(ImageSlideShow):
         date = (item.find('span', class_='created_time')).text
         ptext = item.find('p', class_='pintaram-text').text
 
+        h3_username = item.find('h3', class_='user-username')
+        username = h3_username.find('div').text
+
         slide = MySlide(self.app, relief=tkinter.SUNKEN)
         slide.text = ptext
         slide.date = date
+        slide.subtitle = username
         slide.set_image_from_url(img_src)
         self.slides.append(slide)
         slide.render(self.title)
@@ -713,6 +717,14 @@ class App(AppBase):
         self.slideshow.refresh()
         self.enqueue(self.load_next_page)
 
+    def cmd__lnp(self):
+        """
+        Load next page, no matter which you're looking right now
+
+        Usage: lnp
+        """
+        self.load_next_page()
+
     def load_next_page(self):
         if self.loading_next_page:
             return
@@ -769,6 +781,7 @@ class App(AppBase):
         self.set_config('favorites', self.favorites)
 
         if self.slideshow:
+            _, description = self.favorites[url]
             new_title = f'{self.slideshow.title} [FAV: {description}]'
             self.slideshow.title = new_title
             for slide in self.slideshow.slides:
