@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xe79f4ac7
+# __coconut_hash__ = 0xd09040f8
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -688,7 +688,21 @@ def handle_command(*_coconut_match_to_args, **_coconut_match_to_kwargs):
 @addpattern(handle_command)
 @_coconut_tco
 def handle_command(self, command):
-    head, *args = re.split(r'\s+', command)
+# TODO: That's horrible! How can I use @addpattern properly?
+    if (isinstance)(command, str):
+        command = re.split(r'\s+', command)
+
+    _coconut_match_check = False
+    _coconut_match_to = command
+    if (_coconut.isinstance(_coconut_match_to, _coconut.abc.Sequence)) and (_coconut.len(_coconut_match_to) >= 1):
+        args = _coconut.list(_coconut_match_to[1:])
+        head = _coconut_match_to[0]
+        _coconut_match_check = True
+    if not _coconut_match_check:
+        _coconut_match_err = _coconut_MatchError("pattern-matching failed for " "'[head] + args = command'" " in " + _coconut.repr(_coconut.repr(_coconut_match_to)))
+        _coconut_match_err.pattern = '[head] + args = command'
+        _coconut_match_err.value = _coconut_match_to
+        raise _coconut_match_err
 
     parsed_args = []
     for arg in args:
@@ -746,7 +760,7 @@ def do_handle_command(*_coconut_match_to_args, **_coconut_match_to_kwargs):
     app = self.parent.running_apps[app_name]
     importlib.reload(app._module_reference)
     self.parent.unload_app(app_name)
-    self.parent.open_app(app_name)
+    self.parent.open_app(app_name, parsed_args)
 
 
 @addpattern(do_handle_command)
@@ -799,7 +813,7 @@ def do_handle_command(*_coconut_match_to_args, **_coconut_match_to_kwargs):
 @addpattern(do_handle_command)
 def do_handle_command(self, head, parsed_args):
     if head in self.parent.available_apps:
-        t = threading.Thread(target=self.parent.open_app, args=[head])
+        t = threading.Thread(target=self.parent.open_app, args=[head, parsed_args])
         t.start()
         return
 

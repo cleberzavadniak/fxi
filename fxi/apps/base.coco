@@ -285,9 +285,9 @@ class AppBase:
             return self.ls_later_list()
 
         key = 'app:later_list'
-        later_list = self.get_config(key, [])
-        later_list.append(cmd)
-        self.set_config(key, later_list)
+        later_list = set(self.get_config(key, []))
+        later_list.add(cmd)
+        self.set_config(key, list(later_list))
         self.info(f'Saved "{cmd}" for later.')
 
     def ls_later_list(self):

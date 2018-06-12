@@ -143,8 +143,11 @@ def handle_command(self, ''):
 
 @addpattern(handle_command)
 def handle_command(self, command):
-    head, *args = re.split(r'\s+', command)
+    # TODO: That's horrible! How can I use @addpattern properly?
+    if command `isinstance` str:
+        command = re.split(r'\s+', command)
 
+    [head] + args = command
     parsed_args = []
     for arg in args:
         if arg == '!c':
@@ -173,7 +176,7 @@ def do_handle_command(self, ':r', parsed_args):
     app = self.parent.running_apps[app_name]
     importlib.reload(app._module_reference)
     self.parent.unload_app(app_name)
-    self.parent.open_app(app_name)
+    self.parent.open_app(app_name, parsed_args)
 
 
 @addpattern(do_handle_command)
@@ -198,7 +201,7 @@ def do_handle_command(self, 'echo', parsed_args):
 @addpattern(do_handle_command)
 def do_handle_command(self, head, parsed_args):
     if head in self.parent.available_apps:
-        t = threading.Thread(target=self.parent.open_app, args=[head])
+        t = threading.Thread(target=self.parent.open_app, args=[head, parsed_args])
         t.start()
         return
 

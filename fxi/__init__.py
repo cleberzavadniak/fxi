@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xa85c8f47
+# __coconut_hash__ = 0xe03560e6
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -628,7 +628,7 @@ class FXI:
         the_app_class._module_reference = module
         return the_app_class
 
-    def open_app(self, name):
+    def open_app(self, name, args=None):
         app_class = self.get_app_class(name)
         app = app_class(self)
         app.init()
@@ -637,6 +637,9 @@ class FXI:
         self.notebook.focus_on_app(app)
         self.current_app = name
         self.running_apps[name] = app
+
+        if args:
+            self.command_line.handle_command(args)
 
     def unload_app(self, name):
         app = self.running_apps[name]

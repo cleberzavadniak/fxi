@@ -21,3 +21,7 @@ for d in $dirs;do
         done
     )
 done
+
+for file in **/*.coco;do
+    coconut --target 36 $file
+done

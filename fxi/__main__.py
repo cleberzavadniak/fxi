@@ -6,7 +6,7 @@ from . import FXI
 fxi = FXI()
 
 try:
-    command_line_arg = sys.argv[1]
+    command_line_arg = ' '.join(sys.argv[1:])
 except IndexError:
     command_line_arg = None
 

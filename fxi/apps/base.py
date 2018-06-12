@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x5d6ab3b3
+# __coconut_hash__ = 0xcb4eb512
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -796,9 +796,9 @@ class AppBase:
             return _coconut_tail_call(self.ls_later_list)
 
         key = 'app:later_list'
-        later_list = self.get_config(key, [])
-        later_list.append(cmd)
-        self.set_config(key, later_list)
+        later_list = set(self.get_config(key, []))
+        later_list.add(cmd)
+        self.set_config(key, list(later_list))
         self.info(f'Saved "{cmd}" for later.')
 
     def ls_later_list(self):
