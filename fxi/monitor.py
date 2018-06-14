@@ -17,7 +17,7 @@ class LazySlot(ttk.Label):
 
         self.configure(text=apply_surrogates(what))
 
-    def write_image_from_url(self, url, *args, **kwargs):
+    def write_image_from_url(self, url, dimensions=None, *args, **kwargs):
         if not self.master.alive:
             return
 
@@ -30,18 +30,24 @@ class LazySlot(ttk.Label):
         image_data = response.content
         image_buffer = BytesIO(image_data)
         image = Image.open(image_buffer)
-        self.write_image(image, *image.size)
+
+        self.write_image(image, dimensions)
         return image
 
-    def write_image(self, image, width, height):
+    def write_image(self, image, dimensions=None):
         max_width = self.master.master.winfo_width() * 0.95
 
+        if dimensions:
+            image.thumbnail(dimensions)
+
+        width, height = image.size
         if width > max_width:
             p = max_width / width
             image.thumbnail((
                 int(width * p),
                 int(height * p)
             ))
+
         photoimage = PhotoImage(image)
 
         label = ttk.Label(
