@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xd312e5ea
+# __coconut_hash__ = 0x3e2ab11d
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -517,251 +517,81 @@ _coconut_MatchError, _coconut_count, _coconut_enumerate, _coconut_reversed, _coc
 
 # Compiled Coconut: -----------------------------------------------------------
 
-import subprocess
-from urllib.parse import quote_plus as urlquote
-from urllib.parse import urljoin
+import importlib
+import os
+from pathlib import PosixPath
+sys = _coconut_sys
 
-from fxi.apps import AppBase
-
-import requests
-from bs4 import BeautifulSoup
+from .home import App as HomeApp
 
 
-class Entry:
-    def __init__(self, title, url, thumbnail_url=None):
-        self.title = title
-        self.url = url
-        self.thumbnail_url = thumbnail_url
+class PluggableAppsAppMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.available_apps = []
+        self.running_apps = {}
+        self.current_app = None
 
+    def locate_apps(self):
+        def add_to_path(path):
+            sys.path.append(path)
+            (tuple)(map(add_app, PosixPath(path).glob('fx*')))
 
-class App(AppBase):
-    title = 'Music'
+        def add_app(entry):
+            if not entry.is_dir():
+                return
 
-    def init(self):
-        self.entries = {}
-        self.darklyrics_base_url = 'http://www.darklyrics.com'
+            initfile = entry / '__init__.py'
+            if not initfile.exists():
+                return
 
-    @staticmethod
-    def get(url, **kwargs):
-        response = requests.get(url, **kwargs)
-        response.raise_for_status()
-        return response.content
+            app_name = entry.name[2:]
+            self.available_apps.append(app_name)
 
-    def ytsearch(self, term, max_entries=12):
-        term = urlquote(term)
-        url = f'https://www.youtube.com/results?search_query={term}'
-        soup = (BeautifulSoup)(self.get(url, headers={'Referer': 'www.youtube.com'}))
+        path = os.environ.get('FXIPATH', 'applications')
+        (tuple)(map(add_to_path, path.split(':')))
 
-        ol = soup.find('ol', class_='item-section')
+        main_app = HomeApp(self)
+        main_app.init()
+        self.running_apps['main'] = main_app
+        main_app.render_app()
+        self.current_app = 'main'
 
-        last_thumb_url = None
-        entries = tuple((e for e in ol.children if e.name == 'li'))[0:max_entries]
-        for list_item in entries:
-            for img in list_item.find_all('img'):
-                src = img.attrs['src']
-                if '.jpg' in src and src != last_thumb_url:
-                    thumbnail_src = src
-                    last_thumb_url = src
-                    break
-
-            h3 = list_item.find('h3')
-            title_anchor = h3.find('a')
-            href = title_anchor.attrs.get('href', None)
-            if not href or '/watch' not in href:
-                continue
-
-            url = f'https://www.youtube.com{href}'
-            title = title_anchor.attrs['title']
-
-            e = Entry(title, url, thumbnail_src)
-            video_time_span = list_item.find('span', class_='video-time')
-            if video_time_span:
-                video_time = video_time_span.text
-                e.duration = video_time
-            yield e
-
-    def cmd__s(self, *words):
-        """
-        Search
-
-        Usage: s <term>
-        """
-        term = ' '.join(words)
-
-        with self.info(f'Searching for {term}...'):
-            entries = self.ytsearch(term)
-
-        monitor = self.open_monitor(f'Search: {term}')
-
-        self.entries = {}
-        index = 0
-        for entry in entries:
-            monitor.h2(f'{index}: {entry.title}')
-            monitor.write(entry.url)
-            duration = getattr(entry, 'duration', None)
-            if duration:
-                monitor.write(f'Duration: {duration}')
-            monitor.write_image_from_url(entry.thumbnail_url)
-            monitor.hr()
-
-            self.entries[index] = entry
-            index += 1
-
-    def cmd__play(self, index):
-        """
-        Copy a mplayer command to clipboard so you can
-        play the song at your terminal.
-
-        Usage: play <index>
-        """
-
-        entry = self.entries[int(index)]
-        self.info('Extracting metadata')
-        status, output = subprocess.getstatusoutput(f'youtube-dl -g "{entry.url}"')
-        video_url, audio_url = output.split('\n')
-
-        self.current_monitor.clipboard_clear()
-        self.current_monitor.clipboard_append(f'mplayer "{audio_url}"')
-        self.info('mplayer command copied to clipboard')
-
-        monitor = self.open_monitor(f'Play: {entry.title}')
-        soup = (BeautifulSoup)(self.get(entry.url, headers={'Referer': 'www.youtube.com'}))
-
-        monitor.h1('Related videos')
-        for list_item in soup.find_all('li', class_='related-list-item')[0:20]:
-            content = list_item.find('div', class_='content-wrapper')
-            if not content:
-                continue
-            anchor = content.find('a')
-            title = anchor.attrs['title']
-            href = anchor.attrs['href']
-            url = f'https://www.youtube.com{href}'
-
-            thumb_wrapper = list_item.find('div', class_='thumb-wrapper')
-            img = thumb_wrapper.find('img')
-            thumbnail_src = img.attrs['data-thumb']
-
-            monitor.h2(title)
-            monitor.write(url)
-            monitor.write_image_from_url(thumbnail_src)
-
-    @_coconut_tco
-    def cmd__l(self, *words):
-        """
-        Find lyrics for <song-name>
-
-        Usage: l <song-name>
-        """
-
-        term = ' '.join(words)
-
+    def get_app_class(self, app_name):
+        module_name = f'fx{app_name}'
         try:
-            index = int(term)
-        except ValueError:
-            return _coconut_tail_call(self.find_lyrics, term)
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError as ex:
+            print(f'ModuleNotFoundError: {ex}')
+            return
+        try:
+            the_app_class = getattr(module, 'App')
+        except AttributeError as ex:
+            print(f' {app_name}: AttributeError: {ex}')
+            return
 
-        return _coconut_tail_call(self.navigate, index)
+        the_app_class._module_reference = module
+        return the_app_class
 
-    @_coconut_tco
-    def find_lyrics(self, title):
-        return _coconut_tail_call(self.find_lyrics_darklyrics, title)
+    def open_app(self, name, args=None):
+        app_class = self.get_app_class(name)
+        app = app_class(self)
+        app.init()
 
-    def find_lyrics_darklyrics(self, title):
-        quoted_term = urlquote(title)
-        search_url = f'{self.darklyrics_base_url}/search?q={quoted_term}'
+        app.render_app()
+        self.notebook.focus_on_app(app)
+        self.current_app = name
+        self.running_apps[name] = app
 
-        with self.info(f'Searching for {title}...'):
-            soup = (BeautifulSoup)(self.get(search_url))
+        if args:
+            self.command_line.handle_command(args)
 
-        monitor = self.open_monitor(title)
-        self.entries = {}
+    def unload_app(self, name):
+        app = self.running_apps[name]
+        app.quit()
+        del self.running_apps[name]
 
-        index = 0
-
-        def show_anchor(anchor):
-            nonlocal index
-
-            if anchor is None:
-                return
-
-            text = anchor.text
-            href = anchor.attrs.get('href', None)
-
-            if href is None:
-                return
-
-            monitor.write(f'{index:>3}: {text}')
-            self.entries[index] = (text, self.darklyrics_base_url, href)
-            index += 1
-
-        for entry in soup.find_all('div', class_='sen'):
-            (show_anchor)(entry.find('a'))
-
-    @_coconut_tco
-    def navigate(self, index):
-        text, base_url, url = self.entries[index]
-
-        url = urljoin(base_url, url)
-
-        with self.info(f'Loading "{text}"...'):
-            soup = (BeautifulSoup)(self.get(url))
-
-        _coconut_match_to = url
-        _coconut_match_check = False
-        _coconut_match_check = True
-        if _coconut_match_check and not ('/lyrics/' in url):
-            _coconut_match_check = False
-        if _coconut_match_check:
-            viewer = self.view_lyrics
-        if not _coconut_match_check:
-            viewer = self.view_band
-
-        monitor = self.open_monitor(text)
-        return _coconut_tail_call(viewer, text, url, monitor, soup)
-
-    def view_band(self, text, url, monitor, soup):
-        index = 0
-        self.entries = {}
-
-        def show_anchor(anchor):
-            if anchor is None:
-                return
-
-            nonlocal index
-
-            text = anchor.text
-            href = anchor.attrs.get('href', None)
-            if href is None:
-                return
-
-            monitor.write(f'{index:>4}: {text}')
-
-            self.entries[index] = (text, self.darklyrics_base_url, href)
-            index += 1
-
-        def show_album(album):
-            (monitor.h2)(album.find('h2').text)
-            (tuple)(map(show_anchor, album.find_all('a')))  # Is there a better way than "tupling" it?
-            monitor.hr()
-
-        (tuple)(map(show_album, soup.find_all('div', class_='album')))
-
-    def view_lyrics(self, text, url, monitor, soup):
-        lyrics = soup.find('div', class_='lyrics')
-
-        def show_element(element):
-            _coconut_match_to = element.name
-            _coconut_match_check = False
-            if _coconut_match_to == 'h3':
-                _coconut_match_check = True
-            if _coconut_match_check:
-                anchor = element.find('a')
-                monitor.hr()
-                monitor.h2(anchor.text)
-            if not _coconut_match_check:
-                if _coconut_match_to is None:
-                    _coconut_match_check = True
-                if _coconut_match_check:
-                    monitor.write(element.strip('\n'))
-
-        (tuple)(map(show_element, lyrics.children))
+    def stop_apps(self):
+        print('Stopping apps...')
+        for app in self.running_apps.values():
+            app.quit()

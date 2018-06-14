@@ -1,7 +1,7 @@
 from requests.exceptions import ConnectionError
 from translate import Translator
 
-from fxi.apps.base import AppBase
+from fxi.apps import AppBase
 
 
 class App(AppBase):

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from confluence import Api
 
-from fxi.apps.base import AppBase
+from fxi.apps import AppBase
 
 
 class App(AppBase):

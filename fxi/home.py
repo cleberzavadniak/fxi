@@ -1,8 +1,8 @@
-from .base import AppBase
+from .apps import AppBase
 
 
 class App(AppBase):
-    title = 'Main'
+    title = 'Home'
 
     def cmd__ls(self):
         monitor = self.open_monitor('ls')

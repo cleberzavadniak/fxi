@@ -1,7 +1,7 @@
 import facepy
 
-from fxi.apps.base import AppBase
-from fxi.apps.main_list import MainList
+from fxi.apps import AppBase
+from fxi.main_list import MainList
 
 
 class MyMainList(MainList):

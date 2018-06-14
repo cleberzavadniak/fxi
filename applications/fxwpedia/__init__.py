@@ -1,4 +1,4 @@
-from fxi.apps.base import AppBase
+from fxi.apps import AppBase
 
 import wikipedia
 

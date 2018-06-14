@@ -1,0 +1,57 @@
+import tkinter
+from tkinter import ttk
+
+from .command_line import CommandLine
+from .prompt import Prompt
+from .notebook import Notebook
+
+from .windowed_app import WindowedApp
+from .pluggable_apps import PluggableAppsAppMixin
+
+
+class FXI(PluggableAppsAppMixin, WindowedApp):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.notebook = Notebook(self)
+        self.notebook.pack(expand=1, fill='both')
+
+        self.commands_frame = ttk.Frame()
+        self.commands_frame.pack(fill=tkinter.X)
+        self.command_line = CommandLine(self, self.commands_frame)
+        self.prompt = Prompt(self.command_line, self.commands_frame)
+        self.prompt.pack(side=tkinter.LEFT)
+        self.command_line.pack(side=tkinter.LEFT, expand=True, fill=tkinter.X)
+
+        self.status_bar = ttk.Frame(self.main_window, style='status.TFrame')
+        self.status_bar.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+
+        self.status = ttk.Label(
+            self.status_bar,
+            relief=tkinter.SUNKEN,
+            anchor=tkinter.W,
+            style='status.TLabel'
+        )
+        self.status['text'] = "Welcome"
+        self.status.pack(fill=tkinter.X)
+
+    def info(self, message):
+        # TODO:
+        # 1- Save historic data for messages.
+        # 2- Count how many time each message was on
+        # screen (so we know how much "Loading..."
+        # took to finish).
+        message = message or '-'
+
+        # TODO: create method on `self.status` to change the text.
+        self.status['text'] = message
+
+    def start(self, command_line_arg=None):
+        self.alive = True
+        self.locate_apps()
+        self.command_line.focus_set()
+        if command_line_arg:
+            self.command_line.handle_command(command_line_arg)
+        self.main_window.mainloop()
+        self.alive = False
+        self.stop_apps()

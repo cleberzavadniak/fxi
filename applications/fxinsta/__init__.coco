@@ -2,8 +2,8 @@ from time import sleep
 import tkinter
 from urllib.parse import quote_plus as urlquote, urljoin
 
-from fxi.apps.base import AppBase
-from fxi.apps.slideshow import Slide, ImageSlideShow
+from fxi.apps import AppBase
+from fxi.slideshow import Slide, ImageSlideShow
 
 import requests
 from bs4 import BeautifulSoup
@@ -23,18 +23,33 @@ class MySlide(Slide):
 
 
 class MySlideShow(ImageSlideShow):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.username = None
+        self.full = False
+
     def next(self, *args, **kwargs):
         super().next(*args, **kwargs)
 
         num_slides = len(self.slides)
         self.app.info(f'Slide {self.index} of {num_slides}')
 
-        if num_slides > 5 and self.index > (num_slides - 4):
+        if not self.full and num_slides > 5 and self.index > (num_slides - 4):
             self.app.enqueue(self.app.load_next_page)
 
     def create_slide(self, item):
         img = item.find('img')
         if not img:
+            return
+
+        h3_username = item.find('h3', class_='user-username')
+        username = h3_username.find('div').text
+
+        if self.username is None:
+            self.username = username
+        elif self.username != username:
+            self.full = True
+            self.app.info('Last slide reached!')
             return
 
         img_anchor = img.parent
@@ -46,9 +61,6 @@ class MySlideShow(ImageSlideShow):
 
         date = item.find('span', class_='created_time') |> .text
         ptext = item.find('p', class_='pintaram-text').text
-
-        h3_username = item.find('h3', class_='user-username')
-        username = h3_username.find('div').text
 
         slide = MySlide(self.app, relief=tkinter.SUNKEN)
         slide.text = ptext
@@ -239,9 +251,8 @@ class App(AppBase):
 
         monitor.hr()
 
-    @staticmethod
-    def get_soup(url, **kwargs):
-        response = requests.get(url, **kwargs)
+    def get_soup(self, url, **kwargs):
+        response = requests.get(url, headers={'Referer': self.base_url}, **kwargs)
         response.raise_for_status()
         return response.content |> BeautifulSoup
 

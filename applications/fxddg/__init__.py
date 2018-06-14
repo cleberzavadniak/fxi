@@ -2,7 +2,7 @@ import re
 
 import duckduckpy
 
-from fxi.apps.base import AppBase
+from fxi.apps import AppBase
 
 
 class App(AppBase):

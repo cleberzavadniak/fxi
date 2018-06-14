@@ -1,0 +1,78 @@
+import importlib
+import os
+from pathlib import PosixPath
+import sys
+
+from .home import App as HomeApp
+
+
+class PluggableAppsAppMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.available_apps = []
+        self.running_apps = {}
+        self.current_app = None
+
+    def locate_apps(self):
+        def add_to_path(path):
+            sys.path.append(path)
+            PosixPath(path).glob('fx*') |> map$(add_app) |> tuple
+
+        def add_app(entry):
+            if not entry.is_dir():
+                return
+
+            initfile = entry / '__init__.py'
+            if not initfile.exists():
+                return
+
+            app_name = entry.name[2:]
+            self.available_apps.append(app_name)
+
+        path = os.environ.get('FXIPATH', 'applications')
+        path.split(':') |> map$(add_to_path) |> tuple
+
+        main_app = HomeApp(self)
+        main_app.init()
+        self.running_apps['main'] = main_app
+        main_app.render_app()
+        self.current_app = 'main'
+
+    def get_app_class(self, app_name):
+        module_name = f'fx{app_name}'
+        try:
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError as ex:
+            print(f'ModuleNotFoundError: {ex}')
+            return
+        try:
+            the_app_class = getattr(module, 'App')
+        except AttributeError as ex:
+            print(f' {app_name}: AttributeError: {ex}')
+            return
+
+        the_app_class._module_reference = module
+        return the_app_class
+
+    def open_app(self, name, args=None):
+        app_class = self.get_app_class(name)
+        app = app_class(self)
+        app.init()
+
+        app.render_app()
+        self.notebook.focus_on_app(app)
+        self.current_app = name
+        self.running_apps[name] = app
+
+        if args:
+            self.command_line.handle_command(args)
+
+    def unload_app(self, name):
+        app = self.running_apps[name]
+        app.quit()
+        del self.running_apps[name]
+
+    def stop_apps(self):
+        print('Stopping apps...')
+        for app in self.running_apps.values():
+            app.quit()

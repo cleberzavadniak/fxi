@@ -1,6 +1,6 @@
 from math import ceil
 
-from fxi.apps.base import AppBase
+from fxi.apps import AppBase
 
 from bs4 import BeautifulSoup
 import newspaper
