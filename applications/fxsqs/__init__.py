@@ -3,7 +3,7 @@ import json
 import boto3
 
 from fxi.apps import AppBase
-from fxi.main_list import MainList
+from fxi.table import Table
 
 from .operations import SQSOperationsMixin
 
@@ -18,7 +18,7 @@ def arg_is_entry(method):
     return new_method
 
 
-class MyMainList(MainList):
+class MyTable(Table):
     def refresh(self):
         for entry in self.entries:
             entry.mark_as('loading')
@@ -34,7 +34,7 @@ class App(SQSOperationsMixin, AppBase):
         self.client = boto3.resource('sqs', 'us-east-1')  # XXX
         self.queues = {}
         self.queues_widgets = {}
-        self.main_list = MyMainList(
+        self.main_list = MyTable(
             self,
             (('name',), ('count',), ('in_transit_count',)),
             ('Name', 'Messages', 'In transit')

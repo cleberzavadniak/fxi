@@ -1,10 +1,10 @@
 import facepy
 
 from fxi.apps import AppBase
-from fxi.main_list import MainList
+from fxi.table import Table
 
 
-class MyMainList(MainList):
+class MyTable(Table):
     def refresh(self):
         pass
 
@@ -27,7 +27,7 @@ class App(AppBase):
                 continue
             self.persist_unsaved_config()
             break
-        self.main_list = MyMainList(
+        self.main_list = MyTable(
             self,
             (('message',), ('id',)),
             ('Messages', 'ID')

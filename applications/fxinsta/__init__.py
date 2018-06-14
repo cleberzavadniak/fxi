@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xb34f0ad9
+# __coconut_hash__ = 0xb4e357f
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -518,53 +518,48 @@ _coconut_MatchError, _coconut_count, _coconut_enumerate, _coconut_reversed, _coc
 # Compiled Coconut: -----------------------------------------------------------
 
 from time import sleep
-import tkinter
-from urllib.parse import quote_plus as urlquote
-from urllib.parse import urljoin
 
 from fxi.apps import AppBase
+from fxi.apps import HTTPMixin
 from fxi.slideshow import Slide
 from fxi.slideshow import ImageSlideShow
 
-import requests
-from bs4 import BeautifulSoup
-
 
 class MySlide(Slide):
-    def refresh(self, *args, **kwargs):
-        super().refresh(*args, **kwargs)
+    def on_refresh(self, *args, **kwargs):
         if self.text:
             for word in self.text.split(' '):
                 if word.startswith('@'):
                     term = word[1:]
-                    self.clipboard_clear()
-                    self.clipboard_append(term)
-                    self.app.info(f'Copied {term} to clipboard.')
+                    self.app.copy_to_clipboard(term)
                     break
 
 
 class MySlideShow(ImageSlideShow):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def init(self):
         self.username = None
         self.full = False
 
-    def next(self, *args, **kwargs):
-        super().next(*args, **kwargs)
-
+    def on_next(self, *args, **kwargs):
         num_slides = len(self.slides)
-        self.app.info(f'Slide {self.index} of {num_slides}')
+        idx = self.index + 1
+        self.app.info(f'Slide {idx} of {num_slides}')
 
         if not self.full and num_slides > 5 and self.index > (num_slides - 4):
             self.app.enqueue(self.app.load_next_page)
 
+    def on_previous(self, *args, **kwargs):
+        num_slides = len(self.slides)
+        idx = self.index + 1
+        self.app.info(f'Slide {idx} of {num_slides}')
+
     def create_slide(self, item):
-        img = item.find('img')
+        img = (item('img')).eq(0)
         if not img:
             return
 
-        h3_username = item.find('h3', class_='user-username')
-        username = h3_username.find('div').text
+        h3_username = (item('h3.user-username')).eq(0)
+        username = ((h3_username('div')).eq(0)).text()
 
         if self.username is None:
             self.username = username
@@ -573,17 +568,17 @@ class MySlideShow(ImageSlideShow):
             self.app.info('Last slide reached!')
             return
 
-        img_anchor = img.parent
-        img_anchor_href = img_anchor.attrs['href']
+        img_anchor = (img.parent()).eq(0)
+        img_anchor_href = img_anchor.attr('href')
         img_id = img_anchor_href.split('/')[-1]
         self.app.last_image = img_id
 
-        img_src = img.attrs['src']
+        img_src = img.attr('src')
 
-        date = (item.find('span', class_='created_time')).text
-        ptext = item.find('p', class_='pintaram-text').text
+        date = ((item('span.created_time')).eq(0)).text()
+        ptext = (item('p.pintaram-text')).text()
 
-        slide = MySlide(self.app, relief=tkinter.SUNKEN)
+        slide = MySlide(self.app)
         slide.text = ptext
         slide.date = date
         slide.subtitle = username
@@ -592,7 +587,7 @@ class MySlideShow(ImageSlideShow):
         slide.render(self.title)
 
 
-class App(AppBase):
+class App(HTTPMixin, AppBase):
     title = 'Insta'
 
     def init(self):
@@ -609,10 +604,10 @@ class App(AppBase):
 
         Usage: s <term>
         """
-        term = (urlquote)((' '.join)(words))
+        term = (self.urlquote)((' '.join)(words))
 
         with self.info(f'Searching for "{term}"...'):
-            soup = self.get_soup(f'{self.base_url}/search?query={term}')
+            html = self.request(f'{self.base_url}/search?query={term}')
 
         monitor = self.open_monitor(f'Search: {term}')
         index = 0
@@ -622,32 +617,39 @@ class App(AppBase):
             nonlocal monitor
             nonlocal index
 
-            href = anchor.attrs.get('href', None)
+            href = anchor.attr('href')
             if href is None:
                 return
 
-            url = urljoin(self.base_url, href)
+            url = self.urljoin(self.base_url, href)
+            favorite = url in self.favorites
 
-            img = anchor.find('img')
-            thumbnail_url = img.attrs['src']
+            img = (anchor('img')).eq(0)
+            thumbnail_url = img.attr('src')
 
-            result_name_div = anchor.find('div', class_='search-result-name')
-            div1, div2, *rest = result_name_div.find_all('div')
+            result_name_div = (anchor('div.search-result-name')).eq(0)
+            div1, div2, *rest = result_name_div('div').items()
 
-            name = div1.text
-            nick = div2.text
+            name = div1.text()
+            nick = div2.text()
 
-            monitor.h2(f'{index:>3}: {name}')
+            if favorite:
+                monitor.h2(f'{index:>3}: {name} (Favorite)')
+            else:
+                monitor.h2(f'{index:>3}: {name}')
+
             slot = monitor.add_slot()
             self.enqueue(slot.write_image_from_url, thumbnail_url)
+
             monitor.write(nick)
             monitor.hr()
+
             self.entries[index] = (name, url)
             index += 1
 
-        content_rows = soup.find_all('div', class_='content-row')
-        for row in content_rows[0:50]:
-            (tuple)(map(show_entry, row.find_all('a')))
+        content_rows = html('div.content-row')
+        for row in _coconut_igetitem(content_rows.items(), _coconut.slice(0, 50)):
+            (tuple)(map(show_entry, (row('a')).items()))
 
     def cmd__list(self, index):
         """
@@ -666,7 +668,7 @@ class App(AppBase):
         name, url = self.entries[index]
 
         with self.info(f'Downloading {name}...'):
-            soup = self.get_soup(url)
+            html = self.request(url)
 
         monitor = self.open_monitor(name)
         self.current_url = url
@@ -674,7 +676,7 @@ class App(AppBase):
         self.current_index = index
         self.last_image = None
 
-        (tuple)(map(self.show_photo, soup.find_all('div', class_='grid-item')))
+        (tuple)(map(self.show_photo, (html('div.grid-item')).items()))
 
     @_coconut_tco
     def cmd__ss(self, index):
@@ -712,10 +714,10 @@ class App(AppBase):
         self.slideshow = MySlideShow(self, title, [])
 
         with self.info(f'Downloading {name}...'):
-            soup = self.get_soup(url)
+            html = self.request(url)
 
         with self.info('Creating slides...'):
-            (tuple)(map(self.slideshow.create_slide, soup.find_all('div', class_='grid-item')))
+            (tuple)(map(self.slideshow.create_slide, (html('div.grid-item')).items()))
 
         self.enqueue(self.do_render_slideshow)
         self.slideshow.render()
@@ -740,44 +742,43 @@ class App(AppBase):
     def load_next_page(self):
         if self.loading_next_page:
             return
-
         self.loading_next_page = True
-        with self.info('Loading next page...'):
-            response = requests.post(self.current_url, data={'nextMaxId': self.last_image})
-            response.raise_for_status()
 
-        soup = (BeautifulSoup)(response.content)
-        with self.info('Creating slides...'):
-            (tuple)(map(self.slideshow.create_slide, soup.find_all('div', class_='grid-item')))
+        try:
+            self.do_load_next_page()
+        except Exception as ex:
+            the_type = type(ex)
+            self.info(f'{the_type}: {ex}')
+
         self.loading_next_page = False
 
+    def do_load_next_page(self):
+        html = self.request(self.current_url, message='Loading next page...', method='post', data={'nextMaxId': self.last_image})
+
+        with self.info('Creating slides...'):
+            (tuple)(map(self.slideshow.create_slide, (html('div.grid-item')).items()))
+
     def show_photo(self, item):
-        img = item.find('img')
+        img = (item('img')).eq(0)
         if not img:
             return
 
         monitor = self.current_monitor
 
         img_anchor = img.parent
-        img_anchor_href = img_anchor.attrs['href']
+        img_anchor_href = img_anchor.attr('href')
         img_id = img_anchor_href.split('/')[-1]
         self.last_image = img_id
 
         slot = monitor.add_slot()
-        self.enqueue(slot.write_image_from_url, img.attrs['src'])
+        self.enqueue(slot.write_image_from_url, img.attr('src'))
 
-        (monitor.write)((item.find('span', class_='created_time')).text)
+        (monitor.write)(((item('span.created_time')).eq(0)).text())
 
-        ptext = item.find('p', class_='pintaram-text')
-        (monitor.write)((lambda x: None if x is None else x.text)(ptext))
+        ptext = item('p.pintaram-text')
+        (monitor.write)((lambda x: None if x is None else x.text())(ptext))
 
         monitor.hr()
-
-    @_coconut_tco
-    def get_soup(self, url, **kwargs):
-        response = requests.get(url, headers={'Referer': self.base_url}, **kwargs)
-        response.raise_for_status()
-        return _coconut_tail_call((BeautifulSoup), response.content)
 
     def cmd__f(self, *comment_parts):
         """

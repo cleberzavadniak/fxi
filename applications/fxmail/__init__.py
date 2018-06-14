@@ -1,5 +1,5 @@
 from fxi.apps import AppBase
-from fxi.main_list import MainList
+from fxi.table import Table
 
 import easyimap
 
@@ -11,7 +11,7 @@ class App(AppBase):
         self.client = None
         self.username = None
         self.messages = {}
-        self.main_list = MainList(
+        self.main_list = Table(
             self,
             (('from',), ('subject',), ('date',)),
             ('From', 'Subject', 'When')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xcb4eb512
+# __coconut_hash__ = 0x55aa8f47
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -526,6 +526,12 @@ import threading
 import tkinter
 from tkinter import ttk
 import time
+from urllib.parse import quote_plus as urlquote
+from urllib.parse import urljoin
+from urllib.parse import urlparse
+
+import requests
+from pyquery import PyQuery
 
 from fxi.widgets.scrollables import VerticalScrolledFrame
 from fxi.monitor import Monitor
@@ -557,6 +563,36 @@ class InfoContext:
             print(traceback)
             return
         self.info(None)
+
+
+class HTTPMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.urljoin = urljoin
+        self.urlquote = urlquote
+
+    def get_referer(self, url):
+        parts = urlparse(url)
+        return parts.hostname
+
+    @_coconut_tco
+    def request(self, url, message=None, method='get', **kwargs):
+        method = getattr(requests, method.lower())
+
+# TODO: detect if the response mime type is content/json
+
+        referer = self.get_referer(url)
+        headers = {'Referer': referer}
+        user_headers = kwargs.pop('headers', {})
+        headers.update(user_headers)
+
+        message = message or f'Loading {url}...'
+
+        with self.info(message):
+            response = method(url, headers=headers, **kwargs)
+            response.raise_for_status()
+        return _coconut_tail_call((PyQuery), response.content)
 
 
 class AppBase:
@@ -645,7 +681,9 @@ class AppBase:
         self.close_monitor()
 
         monitor = Monitor(self, relief=tkinter.RIDGE)
-        monitor.h1(name) if name is None else name
+
+        if name:
+            monitor.h1(name)
 
         self.current_monitor = monitor
         self.show_current_monitor()

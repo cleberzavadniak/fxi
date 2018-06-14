@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0xbb9ebf1
+# __coconut_hash__ = 0x6ccf1a12
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -549,6 +549,11 @@ class Slide(ttk.Frame):
         label.pack(expand=True, fill=tkinter.X)
         self.title_label = label
 
+        self.init()
+
+    def init(self):
+        pass
+
     @property
     @_coconut_tco
     def width(self):
@@ -559,8 +564,8 @@ class Slide(ttk.Frame):
     def height(self):
         return _coconut_tail_call(self.master.master.winfo_height)
 
-    def set_image_from_url(self, url):
-        self.app.enqueue(self.do_set_image_from_url, url)
+    def set_image_from_url(self, url, thumb_dimensions=None):
+        self.app.enqueue(self.do_set_image_from_url, url, thumb_dimensions)
 
     def set_title(self, title):
         title = apply_surrogates(title)
@@ -569,7 +574,7 @@ class Slide(ttk.Frame):
         if self.rendered:
             self.title_label.configure(text=title)
 
-    def do_set_image_from_url(self, url):
+    def do_set_image_from_url(self, url, thumb_dimensions=None):
         if not self.app.alive:
             return
 
@@ -582,7 +587,13 @@ class Slide(ttk.Frame):
         image_data = response.content
         image_buffer = BytesIO(image_data)
         image = Image.open(image_buffer)
-        width, height = image.size
+
+        original_dimensions = image.size
+
+        if thumb_dimensions:
+            width, height = thumb_dimensions
+        else:
+            width, height = image.size
 
         max_width = self.width * 0.95
         max_height = self.height * 0.80
@@ -590,12 +601,17 @@ class Slide(ttk.Frame):
         pw = max_width / width
         ph = max_height / height
         p = min(ph, pw)
-        if p < 1:
-            image.thumbnail((int(width * p), int(height * p)))
+        if p > 1:
+            p = 1
+
+        image.thumbnail((int(width * p), int(height * p)))
 
         photoimage = PhotoImage(image)
         self.image_reference = photoimage
         self.image_slot.configure(image=photoimage)
+
+        label = ttk.Label(self, text=f'(Image dimensions: {original_dimensions} -> {image.size})', anchor=tkinter.W, justify=tkinter.LEFT, style=f'small.TLabel')
+        label.pack(expand=True, fill=tkinter.X)
 
     def render(self, title):
         if self.rendered:
@@ -619,8 +635,12 @@ class Slide(ttk.Frame):
 
         self.rendered = True
 
+    def on_refresh(self):
+        pass
+
     def refresh(self):
         self.pack(expand=tkinter.TRUE, fill=tkinter.BOTH)
+        self.on_refresh()
 
     def destroy(self):
         self.image_reference = None
@@ -637,6 +657,14 @@ class ImageSlideShow(ttk.Frame):
 
         self.binded_functions = []
 
+        self.init()
+
+    def init(self):
+        pass
+
+    def on_render(self):
+        pass
+
     def render(self):
         self.app.close_monitor()
         self.app.current_monitor = self
@@ -646,6 +674,7 @@ class ImageSlideShow(ttk.Frame):
         (self.binded_functions.append)(self.app.fxi.command_line.bind("<Right>", self.next))
 
         self.refresh()
+        self.on_render()
 
     @property
     def current_slide(self):
@@ -660,6 +689,9 @@ class ImageSlideShow(ttk.Frame):
     def refresh(self):
         self.current_slide.refresh()
 
+    def on_next(self):
+        pass
+
     def next(self, event=None):
         if self.index + 1 >= len(self.slides):
             return
@@ -667,6 +699,10 @@ class ImageSlideShow(ttk.Frame):
         self.clear()
         self.index += 1
         self.refresh()
+        self.on_next()
+
+    def on_previous(self):
+        pass
 
     def previous(self, event=None):
         if self.index - 1 < 0:
@@ -675,6 +711,10 @@ class ImageSlideShow(ttk.Frame):
         self.clear()
         self.index -= 1
         self.refresh()
+        self.on_previous()
+
+    def on_close(self):
+        pass
 
     def close(self):
         for fid in self.binded_functions:
@@ -682,3 +722,5 @@ class ImageSlideShow(ttk.Frame):
 
         for slide in self.slides:
             slide.destroy()
+
+        self.on_close()

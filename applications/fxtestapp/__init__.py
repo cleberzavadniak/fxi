@@ -2,12 +2,12 @@ import random
 import time
 
 from fxi.apps import AppBase
-from fxi.main_list import MainList
+from fxi.table import Table
 
 
 class App(AppBase):
     def init(self):
-        self.main_list = MainList(
+        self.main_list = Table(
             self,
             (('phrase',), ('count', 'rand'), ('word',)),
             ('Phrase', '', 'Word')

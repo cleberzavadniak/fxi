@@ -6,6 +6,10 @@ import threading
 import tkinter
 from tkinter import ttk
 import time
+from urllib.parse import quote_plus as urlquote, urljoin, urlparse
+
+import requests
+from pyquery import PyQuery
 
 from fxi.widgets.scrollables import VerticalScrolledFrame
 from fxi.monitor import Monitor
@@ -42,6 +46,35 @@ class InfoContext:
             print(traceback)
             return
         self.info(None)
+
+
+class HTTPMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.urljoin = urljoin
+        self.urlquote = urlquote
+
+    def get_referer(self, url):
+        parts = urlparse(url)
+        return parts.hostname
+
+    def request(self, url, message=None, method='get', **kwargs):
+        method = getattr(requests, method.lower())
+
+        # TODO: detect if the response mime type is content/json
+
+        referer = self.get_referer(url)
+        headers = {'Referer': referer}
+        user_headers = kwargs.pop('headers', {})
+        headers.update(user_headers)
+
+        message = message or f'Loading {url}...'
+
+        with self.info(message):
+            response = method(url, headers=headers, **kwargs)
+            response.raise_for_status()
+        return response.content |> PyQuery
 
 
 class AppBase:
@@ -132,7 +165,9 @@ class AppBase:
         self.close_monitor()
 
         monitor = Monitor(self, relief=tkinter.RIDGE)
-        name ?? monitor.h1(name)
+
+        if name:
+            monitor.h1(name)
 
         self.current_monitor = monitor
         self.show_current_monitor()

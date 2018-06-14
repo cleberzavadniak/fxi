@@ -75,7 +75,7 @@ class EntryCommand:
         self.description = description
 
 
-class MainList:
+class Table:
     def __init__(self, parent, cells, headers=None):
         self.parent = parent
         frame = ttk.Frame(parent.tab.interior, borderwidth=1, relief=tkinter.RIDGE)

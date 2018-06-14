@@ -12,7 +12,8 @@ class WindowedApp(BaseApp):
     def get_main_window(self):
         window = tkinter.Tk()
         window.title("fxi")
-        window.geometry('800x600')
+        window.update()
+        window.minsize(800, 600)
         window.configure(background='white')
 
         font_family = 'Georgia'
@@ -29,4 +30,10 @@ class WindowedApp(BaseApp):
         style.configure('h2.TLabel', font=(font_family, base_font_size + 2, 'bold'))
         style.configure('h1.TLabel', font=(font_family, base_font_size + 4, 'bold'))
         style.configure('status.TLabel', font=('Terminus', 12))
+        style.configure('small.TLabel', font=('Terminus', 8))
         return window
+
+    def copy_to_clipboard(self, string):
+        self.clipboard_clear()
+        self.clipboard_append(string)
+        self.info(f'Copied {string} to clipboard')
