@@ -1,131 +1,83 @@
 from collections import defaultdict
-from pathlib import Path
 
 from confluence import Api
 
 from fxi.apps import AppBase
+from .parser import Parser
 
 
 class App(AppBase):
     title = 'Confluence'
 
     def init(self):
-        self.cwd = Path('/')  # <space-key>/page1/page2
+        self.current_page = None
+        self.current_space = None
         self.spaces = {}
-
-        username = self.get_config_or_ask('username', label='Username (usually without the @domain part)')
-        password = self.get_config_or_ask('password', hidden=True, label="Password (won't be displayed)")
-        url = self.get_config_or_ask('url', label='URL (usually ends in "/wiki")')
-
-        try:
-            self.api = Api(url, username, password)
-        except Exception as ex:
-            the_type = type(ex)
-            self.info(f'{the_type}: {ex}')
-            return
-        else:
-            self.persist_unsaved_config()
-
+        self.pages_tree = {}
         self.pages = {}
+        self.entries = []
+
+        self.connect()
         self.load_spaces()
 
+    def connect(self):
+        url = self.get_config_or_ask('url', label='URL (usually ends in "/wiki")')
+        username = self.get_config_or_ask('username', label='Username (usually without the @domain part)')
+        password = self.get_config_or_ask('password', label=f"Password for {username} (won't be displayed)", hidden=True)
+        # password = self.ask(f"Password for {username} (won't be displayed)", hidden=True)
+
+        with self.info('Conecting...'):
+            try:
+                self.api = Api(url, username, password)
+            except Exception as ex:
+                the_type = type(ex)
+                self.info(f'{the_type}: {ex}')
+                return
+            else:
+                self.persist_unsaved_config()
+
     def load_spaces(self):
-        self.info('Loading spaces list')
+        with self.info('Loading spaces list'):
+            for entry in self.api.listspaces():
+                name = entry['name']
+                key = entry['key']
+                status = entry['status']
 
-        for entry in self.api.listspaces():
-            name = entry['name']
-            key = entry['key']
-            status = entry['status']
+                if status == 'CURRENT':
+                    try:
+                        pages_tree = self.load_pages(key)
+                    except Exception as ex:
+                        print(f' {ex}')
+                        del self.pages_tree[key]
+                        continue
 
-            print('Space:', name)
-
-            if status == 'CURRENT':
-                try:
-                    self.load_pages(key)
-                except Exception as ex:
-                    print(f' {ex}')
-                    del self.pages[key]
-                    continue
-
-                self.spaces[name] = {
-                    'name': name,
-                    'type': entry['type'],
-                    'key': entry['key'],
-                    'url': entry['url'],
-                    'pages': [],
-                }
-        self.info()
-        # TODO: save it somewhere. It doesn't change that much.
+                    self.spaces[key] = {
+                        'key': key,
+                        'name': name,
+                        'type': entry['type'],
+                        'url': entry['url'],
+                        'pages': pages_tree,
+                    }
+            # TODO: persist it somewhere? It doesn't change that much.
 
     def load_pages(self, space_key):
-        tree = self.pages[space_key] = defaultdict(list)
+        tree = self.pages_tree[space_key] = defaultdict(list)
         for page, _ in self.api.listpages(space_key):
             parent_id = page['parentId']
             tree[parent_id].append(page)
 
-    def cmd__ls(self, path=None):
-        """
-        List pages under current or specified path.
-        Paths must be composed of pages IDs (numeric).
+            self.pages[page['id']] = page
 
-        Usage: ls [path]
-        """
+        return tree
 
-        if path:
-            title = f'ls {path}'
-        else:
-            title = 'ls'
-        monitor = self.open_monitor(title)
+    def cmd__l(self):
+        monitor = self.open_monitor('Spaces')
+        for space in self.spaces.values():
+            num_pages = len(space["pages"])
+            line = f'{space["key"]:>10}: {space["name"]:>30} ({num_pages} pages)'
+            monitor.write(line)
 
-        path = Path(path or '.')
-        target = self.cwd / path
-
-        try:
-            space_key = target.parts[1]
-        except IndexError:
-            space_key = None
-
-        if space_key is None:
-            for space in sorted(self.spaces.values(), key=lambda x: x['type'] == 'global', reverse=True):
-                if space['type'] == 'global':
-                    monitor.write('{s[key]} : {s[name]}'.format(s=space))
-                else:
-                    monitor.write('{s[key]} : {s[name]} ({s[type]})'.format(s=space))
-            return
-
-        path = Path(*(path.parts[1:]))
-        basename = path.name
-
-        # TODO: search by title, too.
-        page_id = basename or '0'
-
-        for page in self.pages[space_key][page_id]:
-            if page['permissions'] == '0':
-                monitor.write('{p[id]} : {p[title]}'.format(p=page))
-            else:
-                monitor.write('{p[id]} : {p[title]} (permissions: {p[permissions]})'.format(p=page))
-
-    def cmd__cd(self, path=None):
-        """
-        Change current path to <path> or go
-        back to root.
-
-        Usage: cd [path]
-
-        "Path" may be absolute or relative.
-        """
-
-        if path is None:
-            self.cwd = '/'
-            return
-
-        if not (path in self.spaces or path in self.pages):
-            self.info('Unknown path')
-            return
-
-        self.cwd = path
-
-    def cmd__v(self, space_key, *page_title_parts):
+    def cmd__v(self, key, debug=False):
         """
         View page.
 
@@ -135,7 +87,52 @@ class App(AppBase):
         page title. Case sensitive. This surely
         will change in the future.
         """
-        page_title = ' '.join(page_title_parts)
-        page = self.api.getpage(page_title, space_key)
+
+        debug = bool(debug)
+
+        if key in self.spaces:
+            space = self.spaces[key]
+            self.current_space = key
+            pages_tree = space['pages']
+            page = pages_tree['0'][0]
+        else:
+            space = self.spaces[self.current_space]
+            index = int(key)
+            pages_tree = space['pages']
+            page = self.entries[index]
+
+        page_id = page['id']
+        children = pages_tree.get(page_id, None)
+
         monitor = self.open_monitor(page['title'])
-        monitor.write(page['content'])
+        self.entries = []
+
+        parent_id = page['parentId']
+
+        index = 0
+        if parent_id != '0':
+            parent = self.pages[parent_id]
+            self.entries.append(parent)
+            monitor.write(f'{index:>4}: {parent["title"]} (parent)')
+            monitor.hr()
+            index += 1
+
+        if children:
+            monitor.h2('Children pages')
+            for index, child in enumerate(children, index):
+                monitor.write(f'{index:>4}: {child["title"]}')
+                self.entries.append(child)
+        else:
+            monitor.write('No children pages.')
+
+        monitor.hr()
+        self.enqueue(self.load_page, page, monitor, debug)
+
+    def load_page(self, page, monitor, debug=False):
+        content_page = self.api.getpage(page['title'], self.current_space)
+        content = content_page['content']
+
+        monitor.h1(page['title'])
+        parser = Parser(monitor)
+        parser.debug = debug
+        parser.feed(content)
