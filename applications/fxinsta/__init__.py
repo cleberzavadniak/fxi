@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x21150020
+# __coconut_hash__ = 0x41d8e623
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -541,17 +541,8 @@ class MySlideShow(ImageSlideShow):
         self.full = False
 
     def on_next(self, *args, **kwargs):
-        num_slides = len(self.slides)
-        idx = self.index + 1
-        self.app.info(f'Slide {idx} of {num_slides}')
-
         if not self.full and num_slides > 5 and self.index > (num_slides - 4):
             self.app.enqueue(self.app.load_next_page)
-
-    def on_previous(self, *args, **kwargs):
-        num_slides = len(self.slides)
-        idx = self.index + 1
-        self.app.info(f'Slide {idx} of {num_slides}')
 
     def create_slide(self, item):
         img = (item('img')).eq(0)
@@ -662,6 +653,8 @@ class App(HTTPMixin, AppBase):
             index = self.current_index + 1
         elif index == 'p':
             index = self.current_index - 1
+        elif index == 'c':
+            index = self.current_index
         else:
             index = int(index)
 
@@ -678,11 +671,6 @@ class App(HTTPMixin, AppBase):
 
         (tuple)(map(self.show_photo, (html('div.grid-item')).items()))
 
-    @_coconut_tco
-    def cmd__ss(self, index):
-        """Slideshow. Same as 'v'"""
-        return _coconut_tail_call(self.cmd__v, index)
-
     def cmd__v(self, index):
         """
         View posts as a slideshow.
@@ -693,6 +681,8 @@ class App(HTTPMixin, AppBase):
             index = self.current_index + 1
         elif index == 'p':
             index = self.current_index - 1
+        elif index == 'c':
+            index = self.current_index
         else:
             index = int(index)
 
@@ -707,7 +697,7 @@ class App(HTTPMixin, AppBase):
 
         if url in self.favorites:
             _, description = self.favorites[url]
-            title = f'{name} [FAV: {description}]'
+            title = f'{name} [{description}]'
         else:
             title = name
 

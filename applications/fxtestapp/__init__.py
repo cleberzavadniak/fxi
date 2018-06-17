@@ -7,8 +7,8 @@ from fxi.table import Table
 
 class App(AppBase):
     def init(self):
-        self.main_list = Table(
-            self,
+        self.table = Table(
+            self.tab.interior,
             (('phrase',), ('count', 'rand'), ('word',)),
             ('Phrase', '', 'Word')
         )
@@ -20,7 +20,7 @@ class App(AppBase):
         with open(__file__) as file_object:
             words = tuple(set(file_object.read().replace('\n', '').split(' ')))
 
-        for row in range(0, 200):
+        for row in range(0, 30):
             entry = {}
             num_words = random.randint(1, 5)
             entry['phrase'] = ' '.join(random.sample(words, num_words))
@@ -31,7 +31,7 @@ class App(AppBase):
 
     def render(self):
         self.h1('Test App')
-        self.main_list.render(self.data)
+        self.table.render(self.data)
 
     # Commands:
     def cmd__sleep(self, *args):

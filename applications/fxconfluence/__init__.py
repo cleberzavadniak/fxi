@@ -20,6 +20,8 @@ class App(AppBase):
         self.connect()
         self.load_spaces()
 
+        self.enqueue(self.cmd__l)
+
     def connect(self):
         url = self.get_config_or_ask('url', label='URL (usually ends in "/wiki")')
         username = self.get_config_or_ask('username', label='Username (usually without the @domain part)')
@@ -127,6 +129,16 @@ class App(AppBase):
 
         monitor.hr()
         self.enqueue(self.load_page, page, monitor, debug)
+
+    def cmd__b(self):
+        """
+        Go back one page.
+        Same as "v 0" on most cases.
+        """
+        if len(self.entries) > 0:
+            return self.cmd__v(0)
+        else:
+            self.info('No entry "0" to go')
 
     def load_page(self, page, monitor, debug=False):
         content_page = self.api.getpage(page['title'], self.current_space)

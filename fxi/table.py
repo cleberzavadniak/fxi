@@ -23,8 +23,8 @@ class Entry:
         self.index_marker = label
         self.widgets.append(label)
 
-        total_width = self.parent.parent.tab.master.winfo_width()
-        width = total_width / len(self.parent.headers)
+        total_width = self.parent.parent.winfo_width()
+        width = total_width / len(self.parent.cells)
         for cell_index, cell in enumerate(self.parent.cells):
             for value_index, value in enumerate(self.data[key] for key in cell):
                 label = ttk.Label(
@@ -78,7 +78,7 @@ class EntryCommand:
 class Table:
     def __init__(self, parent, cells, headers=None):
         self.parent = parent
-        frame = ttk.Frame(parent.tab.interior, borderwidth=1, relief=tkinter.RIDGE)
+        frame = ttk.Frame(parent, borderwidth=1, relief=tkinter.RIDGE)
         self.frame = frame
         self.cells = cells
         self.headers = headers or []

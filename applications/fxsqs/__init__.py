@@ -19,11 +19,15 @@ def arg_is_entry(method):
 
 
 class MyTable(Table):
+    def __init__(self, app, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.app = app
+
     def refresh(self):
         for entry in self.entries:
             entry.mark_as('loading')
             name = entry.data['name']
-            new_data = self.parent.refresh_queue(name)
+            new_data = self.app.refresh_queue(name)
             entry.refresh(new_data)
 
 
@@ -36,6 +40,7 @@ class App(SQSOperationsMixin, AppBase):
         self.queues_widgets = {}
         self.main_list = MyTable(
             self,
+            self.tab.interior,
             (('name',), ('count',), ('in_transit_count',)),
             ('Name', 'Messages', 'In transit')
         )
