@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x41d8e623
+# __coconut_hash__ = 0x62a35766
 
 # Compiled with Coconut version 1.3.1 [Dead Parrot]
 
@@ -532,7 +532,13 @@ class MySlide(Slide):
                 if word.startswith('@'):
                     term = word[1:]
                     self.app.copy_to_clipboard(term)
-                    break
+                    return
+
+            for word in self.text.split(' '):
+                if word.startswith('#'):
+                    term = word[1:]
+                    self.app.copy_to_clipboard(term)
+                    return
 
 
 class MySlideShow(ImageSlideShow):
@@ -541,6 +547,7 @@ class MySlideShow(ImageSlideShow):
         self.full = False
 
     def on_next(self, *args, **kwargs):
+        num_slides = len(self.slides)
         if not self.full and num_slides > 5 and self.index > (num_slides - 4):
             self.app.enqueue(self.app.load_next_page)
 
