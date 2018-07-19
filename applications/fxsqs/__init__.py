@@ -156,6 +156,27 @@ class App(SQSOperationsMixin, AppBase):
         entry.refresh()
         other_entry.refresh()
 
+    def cmd__mv(self, index_a, index_b, num_messages=50):
+        """
+        Move messages from one queue to another.
+
+        Usage: mv <index_a> <index_b> <num_messages=50>
+        """
+
+        entry_a = self.main_list.entries[int(index_a)]
+        entry_b = self.main_list.entries[int(index_b)]
+
+        entry_a.mark_as('O')
+        entry_b.mark_as('D')
+        obj_a = entry_a.data['object']
+        obj_b = entry_b.data['object']
+
+        count = self.move_messages(obj_a, obj_b)
+        self.info(f'{count} messages moved successfuly!')
+
+        entry_a.refresh()
+        entry_b.refresh()
+
     @arg_is_entry
     def cmd__purge(self, entry):
         """
