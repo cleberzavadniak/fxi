@@ -66,6 +66,10 @@ class Slide(ttk.Frame):
         if self.rendered:
             self.title_label.configure(text=title)
 
+    def set_subtitle(self, title):
+        title = apply_surrogates(title)
+        self.subtitle = title
+
     def do_set_image_from_url(self, url, thumb_dimensions=None):
         if not self.app.alive:
             return

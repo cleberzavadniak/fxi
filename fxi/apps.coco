@@ -65,7 +65,11 @@ class HTTPMixin:
         # TODO: detect if the response mime type is content/json
 
         referer = self.get_referer(url)
-        headers = {'Referer': referer}
+        headers={
+            'Referer': referer,
+            # 'Origin': 'https://docs.dhtmlx.com',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:65.0) Gecko/20100101 Firefox/65.0',
+        }
         user_headers = kwargs.pop('headers', {})
         headers.update(user_headers)
 

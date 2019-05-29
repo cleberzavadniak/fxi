@@ -1,7 +1,12 @@
+import re
 from time import sleep
 
 from fxi.apps import AppBase, HTTPMixin
 from fxi.slideshow import Slide, ImageSlideShow
+
+
+def sanitize_string(s):
+    return re.sub(r'[^a-zA-Z0-9_]', '__', s)
 
 
 class MySlide(Slide):
@@ -56,12 +61,12 @@ class MySlideShow(ImageSlideShow):
         ptext = item('p.pintaram-text') |> .text()
 
         slide = MySlide(self.app, self)
-        slide.text = ptext
+        slide.text = ptext |> sanitize_string
         slide.date = date
-        slide.subtitle = username
+        slide.subtitle = username |> sanitize_string
         slide.set_image_from_url(img_src)
         self.slides.append(slide)
-        slide.render(self.title)
+        slide.render(self.title |> sanitize_string)
 
 
 class App(HTTPMixin, AppBase):
@@ -109,6 +114,9 @@ class App(HTTPMixin, AppBase):
 
             name = div1.text()
             nick = div2.text()
+
+            name = sanitize_string(name)
+            nick = sanitize_string(nick)
 
             if favorite:
                 monitor.h2(f'{index:>3}: {name} (Favorite)')
@@ -187,7 +195,7 @@ class App(HTTPMixin, AppBase):
         else:
             title = name
 
-        self.slideshow = MySlideShow(self, title, [])
+        self.slideshow = MySlideShow(self, sanitize_string(title), [])
 
         with self.info(f'Downloading {name}...'):
             html = self.request(url)
