@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# __coconut_hash__ = 0x3782498f
+# __coconut_hash__ = 0x94bafcbe
 
 # Compiled with Coconut version 1.4.0 [Ernest Scribbler]
 
@@ -737,7 +737,7 @@ class ImageSlideShow(ttk.Frame):
         (lambda x: None if x is None else x.pack_forget())(self.current_slide)
 
     def refresh(self):
-        self.current_slide.refresh()
+        (lambda x: None if x is None else x.refresh())(self.current_slide)
 
     def on_next(self):
         pass

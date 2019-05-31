@@ -225,7 +225,7 @@ class ImageSlideShow(ttk.Frame):
         self.current_slide?.pack_forget()
 
     def refresh(self):
-        self.current_slide.refresh()
+        self.current_slide?.refresh()
 
     def on_next(self):
         pass
