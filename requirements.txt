@@ -4,7 +4,7 @@ coconut
 cached-property==1.4.2
 duckduckpy==0.2
 easyimap==0.6.3
-lxml==4.2.1
+lxml==4.6.5
 newspaper3k==0.2.6
 nltk==3.3
 pyquery==1.4.0
